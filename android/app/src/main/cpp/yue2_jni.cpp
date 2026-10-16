@@ -17,11 +17,13 @@
 #include <jni.h>
 #include <pthread.h>
 #include <sched.h>
+#include <strings.h>
 #include <unistd.h>
 
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -36,9 +38,53 @@
 #include "hooks.h"
 #include "pipeline.h"
 
+// dr_flac (public domain / MIT-0), vendored: library songs from the desktop app are FLAC.
+// The implementation lives in this translation unit only.
+#define DR_FLAC_IMPLEMENTATION
+#include "vendor/dr_flac.h"
+
 #define TAG "yue2"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
+
+// ---- audio input: yue2.cpp's audio_read (mp3/wav) plus FLAC via dr_flac ----
+
+// Decode an audio file into yue2.cpp's planar stereo layout [L: T][R: T].
+// .flac goes through dr_flac (mono is duplicated, >2 channels keep the first
+// two); anything else falls through to audio_read. Returns malloc'd memory the
+// caller free()s, like audio_read; NULL on failure.
+static float * studio_audio_read(const char * path, int * T, int * sr) {
+    *T  = 0;
+    *sr = 0;
+    size_t n = strlen(path);
+    if (n < 5 || strcasecmp(path + n - 5, ".flac") != 0) {
+        return audio_read(path, T, sr);
+    }
+    unsigned int channels = 0, rate = 0;
+    drflac_uint64 frames = 0;
+    float * inter = drflac_open_file_and_read_pcm_frames_f32(path, &channels, &rate, &frames, nullptr);
+    if (!inter || channels == 0 || frames == 0 || frames > (drflac_uint64) INT32_MAX / 2) {
+        fprintf(stderr, "[JNI] cannot decode FLAC %s\n", path);
+        drflac_free(inter, nullptr);
+        return nullptr;
+    }
+    const int Tn     = (int) frames;
+    float *   planar = (float *) malloc((size_t) 2 * Tn * sizeof(float));
+    if (!planar) {
+        drflac_free(inter, nullptr);
+        return nullptr;
+    }
+    const unsigned int rc = channels > 1 ? 1 : 0;  // right source channel
+    for (int t = 0; t < Tn; t++) {
+        const float * f = inter + (size_t) t * channels;
+        planar[t]      = f[0];
+        planar[Tn + t] = f[rc];
+    }
+    drflac_free(inter, nullptr);
+    *T  = Tn;
+    *sr = (int) rate;
+    return planar;
+}
 
 enum Stage {
     STAGE_LOAD     = 0,
@@ -408,7 +454,18 @@ extern "C" JNIEXPORT jint JNICALL Java_io_github_jooray_localhoststudio_yue2_Yue
     int                T_base = 0;
     if (!parent.empty() && S > 0) {
         int     sr     = 0;
-        float * planar = audio_read(parent.c_str(), &T_base, &sr);
+        float * planar = studio_audio_read(parent.c_str(), &T_base, &sr);
+        if (planar && sr > 0 && sr != YUE2_SAMPLE_RATE) {
+            // The parent was rendered or exported at another rate: bring it to the engine rate.
+            int     T_rs = 0;
+            float * rs   = audio_resample(planar, T_base, sr, YUE2_SAMPLE_RATE, 2, &T_rs);
+            fprintf(stderr, "[JNI] Resampled parent %d Hz -> %d Hz (%d -> %d samples)\n", sr, YUE2_SAMPLE_RATE,
+                    T_base, T_rs);
+            free(planar);
+            planar = rs;
+            T_base = rs ? T_rs : 0;
+            sr     = rs ? YUE2_SAMPLE_RATE : sr;
+        }
         if (planar && sr == YUE2_SAMPLE_RATE && T_base >= S) {
             base_audio.assign(planar, planar + (size_t) 2 * T_base);
         } else {
@@ -496,7 +553,7 @@ extern "C" JNIEXPORT jstring JNICALL Java_io_github_jooray_localhoststudio_yue2_
     return env->NewStringUTF(info.c_str());
 }
 
-// Decode an audio file (mp3/wav) and write it as 24-bit WAV (sharing in another format).
+// Decode an audio file (mp3/wav/flac) and write it as 24-bit WAV (sharing in another format).
 extern "C" JNIEXPORT jboolean JNICALL Java_io_github_jooray_localhoststudio_yue2_Yue2Native_convertToWav(JNIEnv * env,
                                                                                                         jclass,
                                                                                                         jstring j_src,
@@ -504,7 +561,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_io_github_jooray_localhoststudio_yue2
     const char * src = env->GetStringUTFChars(j_src, nullptr);
     const char * dst = env->GetStringUTFChars(j_dst, nullptr);
     int     T = 0, sr = 0;
-    float * planar = audio_read(src, &T, &sr);
+    float * planar = studio_audio_read(src, &T, &sr);
     bool    ok     = planar && audio_write_wav(dst, planar, T, sr, WAV_S24);
     free(planar);
     env->ReleaseStringUTFChars(j_src, src);
