@@ -37,7 +37,7 @@ class AdaptiveFrame extends StatelessWidget {
       children: [
         SizedBox(
           width: indexColumnWidth(w),
-          child: IndexColumn(studio: studio, header: studio && w - indexColumnWidth(w) - 1 >= 760 ? wideTopBand : pageHeaderHeight),
+          child: IndexColumn(studio: studio, header: studio ? wideTopBand : pageHeaderHeight),
         ),
         const Rule(vertical: true),
         Expanded(child: child),

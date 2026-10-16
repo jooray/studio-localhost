@@ -281,12 +281,12 @@ class _WideStudio extends StatelessWidget {
       );
     } else {
       // One column, same reading order as desktop: plot, status, then the writing together.
-      // The top band matches the index column's page header so the first rules line up.
-      body = Column(
+            body = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Same band height as the index header on every wide layout, so the first rules align.
           SizedBox(
-            height: pageHeaderHeight,
+            height: wideTopBand,
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: side),
               child: const Align(alignment: Alignment.centerLeft, child: Etched('Studio', size: 13, color: Sleeve.ink)),
