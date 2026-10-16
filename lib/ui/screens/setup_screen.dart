@@ -9,9 +9,12 @@ import '../../core/paths.dart';
 import '../../core/setup/model_setup.dart';
 import '../../core/studio.dart';
 import '../../state/nav.dart';
-import '../widgets/common.dart';
+import '../theme.dart';
+import '../widgets/sleeve.dart';
+import 'studio_screen.dart' show shortError;
 
-/// The one place that explains the model: licence, sizes, engine and expected speed.
+/// The one place that explains the model: licence, sizes, engine and expected speed. Shown on
+/// first run and from Settings.
 class SetupScreen extends StatefulWidget {
   const SetupScreen({super.key});
 
@@ -20,6 +23,8 @@ class SetupScreen extends StatefulWidget {
 }
 
 class _SetupScreenState extends State<SetupScreen> {
+  bool _log = false;
+
   @override
   void initState() {
     super.initState();
@@ -31,180 +36,254 @@ class _SetupScreenState extends State<SetupScreen> {
     final studio = context.watch<Studio>();
     final setup = context.watch<ModelSetup>();
     final nav = context.read<AppNav>();
-    final t = Theme.of(context).textTheme;
-    final cs = Theme.of(context).colorScheme;
-    final m = studio.model;
-    final e = studio.engineDescriptor;
-    final f = studio.format;
-    final v = studio.variant;
+    final w = MediaQuery.sizeOf(context).width;
+    final u = (w / 576).clamp(0.7, 1.0);
+    final m = studio.model, e = studio.engineDescriptor, f = studio.format, v = studio.variant;
     final accepted = studio.licenceAccepted;
     final st = setup.status;
     final canClose = studio.settings.setupComplete && !studio.needsSetup;
+    final side = 25 * u;
+
+    Widget section(String label, List<Widget> children) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(width: w < 600 ? 96 * u : 130, child: Padding(padding: const EdgeInsets.only(top: 3), child: Etched(label, size: 11, color: Sleeve.inkMute))),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children)),
+          ]),
+        );
+    final valueStyle = SleeveType.value(u, size: 15);
+    final noteStyle = SleeveType.body(u, color: Sleeve.inkSoft).copyWith(fontSize: 14, height: 1.4);
+
+    final List<Widget> body;
+    if (m == null || e == null || f == null || v == null) {
+      body = [
+        const SizedBox(height: 24),
+        ErrorLine('No engine runs on this device', detail: studio.hardware.description),
+        const SizedBox(height: 8),
+        Text(studio.hardware.description, style: noteStyle),
+      ];
+    } else {
+      final primaryLabel = st.ready
+          ? 'START'
+          : (st.missing.isEmpty ? 'INSTALL ${(f.runtime['name'] ?? 'ENGINE').toString().toUpperCase()}' : 'DOWNLOAD ${formatBytes(st.needBytes)}');
+      final primaryEnabled = accepted && !setup.running;
+      body = [
+        section('Model', [
+          if (studio.registry.models.length > 1)
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final x in studio.registry.models)
+                Cell(shrink: true, selected: x.id == m.id, frame: true, onTap: setup.running ? null : () => studio.selectModel(x.id), padding: const EdgeInsets.symmetric(horizontal: 14), child: Text(x.name, style: valueStyle)),
+            ])
+          else
+            Text(m.name, style: valueStyle),
+          const SizedBox(height: 6),
+          Text('${m.summary}${m.by.isNotEmpty ? ' By ${m.by}.' : ''}', style: noteStyle),
+        ]),
+        const Rule(color: Sleeve.ruleFaint),
+        section('Licence', [
+          Text('${m.licence.name} (${m.licence.spdx})', style: valueStyle),
+          const SizedBox(height: 6),
+          Text(m.licence.summary, style: noteStyle.copyWith(color: Sleeve.ink)),
+          if (f.licenceNote != null) ...[const SizedBox(height: 4), Text(f.licenceNote!, style: noteStyle)],
+          const SizedBox(height: 4),
+          SelectableText(m.licence.url, style: noteStyle.copyWith(decoration: TextDecoration.underline, decorationColor: Sleeve.inkMute)),
+          const SizedBox(height: 4),
+          Text('The app itself is free software ($appLicence); the model has its own licence.', style: noteStyle),
+          const SizedBox(height: 12),
+          Cell(
+            frame: false,
+            onTap: accepted ? null : setup.acceptLicence,
+            alignment: Alignment.centerLeft,
+            semanticLabel: 'I accept the model licence',
+            child: Row(children: [
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(border: Border.all(color: Sleeve.ink, width: Sleeve.hair)),
+                child: accepted ? const GlyphIcon(Glyph.check, size: 20) : null,
+              ),
+              const SizedBox(width: 14),
+              Expanded(child: Etched('I accept the model licence', size: 12, color: Sleeve.ink, maxLines: 2)),
+            ]),
+          ),
+        ]),
+        const Rule(color: Sleeve.ruleFaint),
+        section('Engine', [
+          if (studio.availableEngines.length > 1)
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final x in studio.availableEngines)
+                Cell(
+                  shrink: true,
+                  selected: x.id == e.id,
+                  frame: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  onTap: setup.running
+                      ? null
+                      : () async {
+                          await studio.selectEngineOverride(x.id == studio.recommendedEngine?.id ? '' : x.id);
+                          await setup.refresh();
+                        },
+                  child: Text(x.label, style: SleeveType.value(u, size: 13, color: x.id == e.id ? Sleeve.ink : Sleeve.inkMute)),
+                ),
+            ])
+          else
+            Text(e.label, style: valueStyle),
+          const SizedBox(height: 6),
+          Text(studio.hardware.description, style: noteStyle),
+          Text(e.speedHint, style: noteStyle),
+          Text(e.background, style: noteStyle),
+        ]),
+        const Rule(color: Sleeve.ruleFaint),
+        section('Weights', [
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final x in f.variants)
+              Cell(
+                shrink: true,
+                selected: x.id == v.id,
+                frame: true,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                onTap: setup.running
+                    ? null
+                    : () async {
+                        studio.selectVariant(x.id);
+                        await setup.refresh();
+                      },
+                child: Text('${x.name} · ${formatBytes(x.bytes)}', style: SleeveType.value(u, size: 13, color: x.id == v.id ? Sleeve.ink : Sleeve.inkMute)),
+              ),
+          ]),
+          if (v.note.isNotEmpty) ...[const SizedBox(height: 6), Text(v.note, style: noteStyle)],
+          const SizedBox(height: 10),
+          Text(
+            (st.ready
+                    ? 'Installed'
+                    : [
+                        if (!st.runtimeInstalled) '${f.runtime['name'] ?? 'engine'} to install',
+                        if (st.missing.isNotEmpty) '${formatBytes(st.needBytes)} to download',
+                      ].join(' · ')) +
+                (st.freeBytes != null ? ' · ${formatBytes(st.freeBytes!)} free' : ''),
+            style: SleeveType.etched(u, size: 12, color: st.ready ? Sleeve.ink : Sleeve.inkSoft),
+          ),
+          if (!Platform.isAndroid && !st.ready) ...[
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Cell(
+                frame: false,
+                minHeight: 44,
+                onTap: setup.running
+                    ? null
+                    : () async {
+                        final d = await getDirectoryPath();
+                        if (d != null) await setup.useExistingRuntime(d);
+                      },
+                child: Etched('Use an existing ${f.runtime['name'] ?? 'engine'} folder…', size: 11, color: Sleeve.inkSoft),
+              ),
+            ),
+          ],
+        ]),
+        const Rule(),
+        const SizedBox(height: 18),
+        if (setup.running) ...[
+          Text((setup.task ?? '').toUpperCase(), style: SleeveType.etched(u, size: 12, color: Sleeve.ink)),
+          const SizedBox(height: 10),
+          _Bar(setup.progress),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(child: Text(setup.progressText, maxLines: 2, style: SleeveType.value(u, size: 12, color: Sleeve.inkSoft))),
+            Cell(onTap: setup.cancel, minHeight: 44, padding: const EdgeInsets.symmetric(horizontal: 16), child: Etched('Pause', size: 12, color: Sleeve.ink)),
+          ]),
+        ] else
+          SizedBox(
+            height: 56,
+            child: Cell(
+              block: primaryEnabled,
+              onTap: primaryEnabled
+                  ? () async {
+                      if (st.ready) {
+                        await setup.complete();
+                        nav.openSetup(false);
+                      } else {
+                        await setup.install();
+                      }
+                    }
+                  : null,
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.only(left: 18),
+              semanticLabel: primaryLabel,
+              child: Text(primaryLabel, style: SleeveType.etched(u, size: 15, color: primaryEnabled ? Sleeve.ink : Sleeve.inkMute, weight: FontWeight.w500)),
+            ),
+          ),
+        if (!accepted && !setup.running) ...[
+          const SizedBox(height: 8),
+          Etched('Accept the licence to continue', size: 11, color: Sleeve.inkMute),
+        ],
+        if (setup.error != null) ...[
+          const SizedBox(height: 14),
+          ErrorLine(shortError(setup.error!), detail: setup.error, action: setup.running ? null : 'Retry', onAction: setup.install),
+        ],
+        if (setup.log.isNotEmpty && !Platform.isAndroid) ...[
+          const SizedBox(height: 14),
+          Cell(
+            frame: false,
+            minHeight: 44,
+            alignment: Alignment.centerLeft,
+            onTap: () => setState(() => _log = !_log),
+            child: Row(children: [
+              Etched('Log', size: 11, color: Sleeve.inkMute),
+              const SizedBox(width: 8),
+              GlyphIcon(_log ? Glyph.minus : Glyph.plus, size: 14, color: Sleeve.inkMute),
+            ]),
+          ),
+          if (_log)
+            Container(
+              height: 220,
+              decoration: const BoxDecoration(border: Border.fromBorderSide(BorderSide(color: Sleeve.ruleFaint))),
+              padding: const EdgeInsets.all(10),
+              child: ListView(reverse: true, children: [
+                for (final l in setup.log.reversed.take(300)) Text(l, style: SleeveType.value(1, size: 11, color: Sleeve.inkSoft)),
+              ]),
+            ),
+        ],
+      ];
+    }
+
+    final pad = MediaQuery.paddingOf(context);
     return Scaffold(
-      body: SafeArea(
-        child: Center(
+      body: SleeveScale(
+        u: u,
+        child: Align(
+          alignment: Alignment.topCenter,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: ListView(padding: const EdgeInsets.all(20), children: [
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: ListView(padding: EdgeInsets.fromLTRB(side, pad.top + 12, side, pad.bottom + 32), children: [
               Row(children: [
-                Image.asset('assets/icon-macos-1024.png', width: 48, height: 48),
-                const SizedBox(width: 12),
-                Expanded(child: Text(appName, style: t.titleLarge)),
-                if (canClose) IconButton(icon: const Icon(Icons.close), onPressed: () => nav.openSetup(false)),
+                Image.asset('assets/brand/icon-master-1024.png', width: 52, height: 52, filterQuality: FilterQuality.medium),
+                const SizedBox(width: 16),
+                Expanded(child: Etched(appName, size: 13, color: Sleeve.ink, maxLines: 2)),
+                if (canClose) GlyphButton(Glyph.close, tooltip: 'Close', size: 20, onTap: () => nav.openSetup(false)),
               ]),
               const SizedBox(height: 16),
-              if (m == null || e == null || f == null || v == null)
-                Text('No engine for this device: ${studio.hardware.description}', style: t.bodyLarge)
-              else ...[
-                SectionCard(
-                  title: 'Model',
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    if (studio.registry.models.length > 1)
-                      DropdownButton<String>(
-                        value: m.id,
-                        isExpanded: true,
-                        items: [for (final x in studio.registry.models) DropdownMenuItem(value: x.id, child: Text(x.name))],
-                        onChanged: setup.running ? null : (id) => studio.selectModel(id!),
-                      )
-                    else
-                      Text(m.name, style: t.titleMedium),
-                    Text('${m.summary} ${m.by.isNotEmpty ? 'By ${m.by}.' : ''}', style: t.bodySmall),
-                  ]),
-                ),
-                const SizedBox(height: 12),
-                SectionCard(
-                  title: 'Licence',
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    Text('${m.licence.name} (${m.licence.spdx})', style: t.bodyMedium),
-                    Text(m.licence.summary, style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                    if (f.licenceNote != null) Text(f.licenceNote!, style: t.bodySmall),
-                    SelectableText(m.licence.url, style: t.bodySmall?.copyWith(color: cs.primary)),
-                    Text('This app is free software ($appLicence). The model has its own licence.', style: t.bodySmall),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: accepted,
-                      onChanged: accepted ? null : (_) => setup.acceptLicence(),
-                      title: const Text('I accept the model licence'),
-                    ),
-                  ]),
-                ),
-                const SizedBox(height: 12),
-                SectionCard(
-                  title: 'Engine',
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    if (studio.availableEngines.length > 1)
-                      DropdownButton<String>(
-                        value: e.id,
-                        isExpanded: true,
-                        items: [
-                          for (final x in studio.availableEngines)
-                            DropdownMenuItem(value: x.id, child: Text('${x.label}${x.id == studio.recommendedEngine?.id ? ' (recommended)' : ''}')),
-                        ],
-                        onChanged: setup.running
-                            ? null
-                            : (id) async {
-                                await studio.selectEngineOverride(id == studio.recommendedEngine?.id ? '' : id!);
-                                await setup.refresh();
-                              },
-                      )
-                    else
-                      Text(e.label, style: t.titleSmall),
-                    Text(studio.hardware.description, style: t.bodySmall),
-                    const SizedBox(height: 4),
-                    Text(e.speedHint, style: t.bodySmall),
-                    Text(e.background, style: t.bodySmall),
-                  ]),
-                ),
-                const SizedBox(height: 12),
-                SectionCard(
-                  title: 'Weights',
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    Wrap(spacing: 8, runSpacing: 8, children: [
-                      for (final x in f.variants)
-                        ChoiceChip(
-                          label: Text('${x.name} · ${formatBytes(x.bytes)}'),
-                          selected: x.id == v.id,
-                          onSelected: setup.running
-                              ? null
-                              : (_) async {
-                                  studio.selectVariant(x.id);
-                                  await setup.refresh();
-                                },
-                        ),
-                    ]),
-                    if (v.note.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text(v.note, style: t.bodySmall)),
-                    const SizedBox(height: 8),
-                    Text(
-                      st.ready
-                          ? 'Installed'
-                          : [
-                              if (!st.runtimeInstalled) '${f.runtime['name'] ?? 'Engine'} will be installed',
-                              if (st.missing.isNotEmpty) '${formatBytes(st.needBytes)} to download',
-                              if (st.freeBytes != null) '${formatBytes(st.freeBytes!)} free',
-                            ].join(' · '),
-                      style: t.bodyMedium,
-                    ),
-                    if (!Platform.isAndroid && !st.ready)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton(
-                          onPressed: setup.running
-                              ? null
-                              : () async {
-                                  final d = await getDirectoryPath();
-                                  if (d != null) await setup.useExistingRuntime(d);
-                                },
-                          child: Text('Use an existing ${f.runtime['name'] ?? 'engine'} folder…'),
-                        ),
-                      ),
-                  ]),
-                ),
-                const SizedBox(height: 16),
-                if (setup.running) ...[
-                  Text(setup.task ?? '', style: t.bodyMedium),
-                  const SizedBox(height: 6),
-                  LinearProgressIndicator(value: setup.progress),
-                  if (setup.progressText.isNotEmpty) Text(setup.progressText, style: t.bodySmall),
-                  Align(alignment: Alignment.centerRight, child: TextButton(onPressed: setup.cancel, child: const Text('Pause'))),
-                ] else if (st.ready)
-                  FilledButton(
-                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                    onPressed: accepted
-                        ? () async {
-                            await setup.complete();
-                            nav.openSetup(false);
-                          }
-                        : null,
-                    child: const Text('Start'),
-                  )
-                else
-                  FilledButton(
-                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                    onPressed: accepted ? setup.install : null,
-                    child: Text(st.missing.isEmpty ? 'Install engine' : 'Download ${formatBytes(st.needBytes)}'),
-                  ),
-                if (setup.error != null) Padding(padding: const EdgeInsets.only(top: 8), child: SelectableText(setup.error!, style: TextStyle(color: cs.error))),
-                if (setup.log.isNotEmpty && !Platform.isAndroid)
-                  ExpansionTile(
-                    tilePadding: EdgeInsets.zero,
-                    title: const Text('Log'),
-                    children: [
-                      Container(
-                        height: 200,
-                        padding: const EdgeInsets.all(8),
-                        color: Colors.black87,
-                        child: ListView(reverse: true, children: [
-                          for (final l in setup.log.reversed.take(300))
-                            Text(l, style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.white70)),
-                        ]),
-                      ),
-                    ],
-                  ),
-              ],
+              const Rule(),
+              ...body,
             ]),
           ),
         ),
       ),
     );
   }
+}
+
+class _Bar extends StatelessWidget {
+  const _Bar(this.value);
+  final double? value;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        height: 10,
+        child: Stack(alignment: Alignment.centerLeft, children: [
+          const Rule(color: Sleeve.ruleFaint),
+          if (value != null) FractionallySizedBox(widthFactor: value!.clamp(0.0, 1.0), child: Container(height: 3, color: Sleeve.ink)),
+          if (value == null) const LinearProgressIndicator(minHeight: 1),
+        ]),
+      );
 }

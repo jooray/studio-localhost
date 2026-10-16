@@ -7,6 +7,7 @@ import '../core/jobs/job_queue.dart';
 import '../core/library/library.dart';
 import '../core/library/song.dart';
 import '../core/studio.dart';
+import 'lyric_controller.dart';
 import 'seeds.dart';
 
 /// Extend screen state: the source song, the section to continue from and the prompt.
@@ -22,7 +23,7 @@ class ExtendForm extends ChangeNotifier {
   bool natural = false;
   double add = 30;
   final style = TextEditingController();
-  final lyrics = TextEditingController();
+  final lyrics = LyricController();
   final seed = TextEditingController(text: '${randomSeed()}');
   String mode = 'off';
   bool reuseScore = true;

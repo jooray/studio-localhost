@@ -104,6 +104,9 @@ abstract class Engine extends ChangeNotifier {
 
   /// Short human status ("Ready", "Starting", an error).
   String get statusText;
+
+  /// Set when the engine cannot run jobs (the process failed to start or crashed).
+  String? get fault => null;
   bool get busy;
 
   Future<void> warmUp() async {}

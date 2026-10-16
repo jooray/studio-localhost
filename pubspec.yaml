@@ -2,7 +2,7 @@ name: studio_localhost
 description: "Localhost Recording Studio: local music generation on your own hardware."
 publish_to: 'none'
 # One version for every platform (Android versionName/versionCode, macOS, Linux).
-version: 0.3.0+3
+version: 0.4.0+4
 
 environment:
   sdk: ^3.13.4
@@ -26,10 +26,27 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/icon-macos-1024.png
-    - assets/icon-512.png
+    - assets/brand/icon-master-1024.png
+    - assets/brand/icon-macos-1024.png
     - assets/models/registry.json
     - sidecar/pyproject.toml
     - sidecar/uv.lock
     - sidecar/studio_engine/
     - sidecar/studio_engine/yue2/
+  fonts:
+    - family: Geist
+      fonts:
+        - asset: assets/fonts/Geist-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Geist-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Geist-Medium.ttf
+          weight: 500
+    - family: GeistMono
+      fonts:
+        - asset: assets/fonts/GeistMono-Light.ttf
+          weight: 300
+        - asset: assets/fonts/GeistMono-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/GeistMono-Medium.ttf
+          weight: 500

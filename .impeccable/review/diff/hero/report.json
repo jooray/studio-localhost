@@ -1,0 +1,297 @@
+{
+  "tool": "comp-diff",
+  "version": 1,
+  "createdAt": "2026-10-16T08:36:07.849Z",
+  "label": "hero",
+  "comp": ".impeccable/mocks/comp-3-screen.webp",
+  "build": ".impeccable/review/hero-repro.png",
+  "spec": ".impeccable/build/spec.json",
+  "compSize": "576x1024",
+  "buildSize": "576x1024",
+  "align": "top",
+  "overall": 0.8846,
+  "verdict": "match",
+  "scores": {
+    "overall": 0.8846,
+    "structure": 0.8508,
+    "color": 0.9558,
+    "colorIntersection": 0.913,
+    "paletteMatch": 0.9788,
+    "detail": 0.8303,
+    "detailRaw": 0.8459,
+    "detailAdded": 0.0313,
+    "bands": 0.935
+  },
+  "palette": {
+    "comp": [
+      {
+        "hex": "#090909",
+        "coverage": 0.8665
+      },
+      {
+        "hex": "#f4f4f4",
+        "coverage": 0.0658
+      },
+      {
+        "hex": "#848484",
+        "coverage": 0.0251
+      },
+      {
+        "hex": "#373737",
+        "coverage": 0.0189
+      },
+      {
+        "hex": "#b9b9b9",
+        "coverage": 0.0123
+      },
+      {
+        "hex": "#606060",
+        "coverage": 0.0114
+      }
+    ],
+    "build": [
+      {
+        "hex": "#080808",
+        "coverage": 0.867
+      },
+      {
+        "hex": "#f6f6f6",
+        "coverage": 0.0612
+      },
+      {
+        "hex": "#484848",
+        "coverage": 0.0241
+      },
+      {
+        "hex": "#b6b6b6",
+        "coverage": 0.022
+      },
+      {
+        "hex": "#757575",
+        "coverage": 0.0187
+      },
+      {
+        "hex": "#c85838",
+        "coverage": 0.007
+      }
+    ]
+  },
+  "regions": [
+    {
+      "id": "take-plot",
+      "x": 0.1,
+      "y": 0,
+      "w": 0.8,
+      "h": 0.5,
+      "kind": "chrome",
+      "score": {
+        "overall": 0.8262,
+        "structure": 0.7328,
+        "color": 0.9535,
+        "colorIntersection": 0.8988,
+        "paletteMatch": 0.983,
+        "detail": 0.7705,
+        "detailRaw": 0.7757,
+        "detailAdded": 0.0104,
+        "bands": 0.925
+      },
+      "verdict": "match",
+      "inkBox": {
+        "comp": {
+          "x": 0,
+          "y": 38,
+          "w": 460,
+          "h": 474
+        },
+        "build": {
+          "x": 0,
+          "y": 36,
+          "w": 460,
+          "h": 466
+        }
+      }
+    },
+    {
+      "id": "status-line",
+      "x": 0.0313,
+      "y": 0.4473,
+      "w": 0.9375,
+      "h": 0.0527,
+      "kind": "text",
+      "score": {
+        "overall": 0.7706,
+        "structure": 0.7378,
+        "color": 0.9292,
+        "colorIntersection": 0.8506,
+        "paletteMatch": 0.9715,
+        "detail": 0.7105,
+        "detailRaw": 0.7574,
+        "detailAdded": 0.0938,
+        "bands": 0.6286
+      },
+      "verdict": "drift",
+      "inkBox": {
+        "comp": {
+          "x": 7,
+          "y": 6,
+          "w": 526,
+          "h": 48
+        },
+        "build": {
+          "x": 7,
+          "y": 7,
+          "w": 526,
+          "h": 37
+        }
+      }
+    },
+    {
+      "id": "style",
+      "x": 0.0313,
+      "y": 0.5,
+      "w": 0.9375,
+      "h": 0.0996,
+      "kind": "text",
+      "score": {
+        "overall": 0.9375,
+        "structure": 0.9442,
+        "color": 0.9658,
+        "colorIntersection": 0.9372,
+        "paletteMatch": 0.9812,
+        "detail": 0.8932,
+        "detailRaw": 0.8984,
+        "detailAdded": 0.0104,
+        "bands": 0.9
+      },
+      "verdict": "match",
+      "inkBox": {
+        "comp": {
+          "x": 7,
+          "y": 0,
+          "w": 526,
+          "h": 91
+        },
+        "build": {
+          "x": 7,
+          "y": 0,
+          "w": 526,
+          "h": 92
+        }
+      }
+    },
+    {
+      "id": "lyrics",
+      "x": 0.0313,
+      "y": 0.6055,
+      "w": 0.9375,
+      "h": 0.1348,
+      "kind": "text",
+      "score": {
+        "overall": 0.8351,
+        "structure": 0.8064,
+        "color": 0.9704,
+        "colorIntersection": 0.9438,
+        "paletteMatch": 0.9847,
+        "detail": 0.7049,
+        "detailRaw": 0.7205,
+        "detailAdded": 0.0313,
+        "bands": 0.8361
+      },
+      "verdict": "match",
+      "inkBox": {
+        "comp": {
+          "x": 7,
+          "y": 8,
+          "w": 526,
+          "h": 122
+        },
+        "build": {
+          "x": 7,
+          "y": 8,
+          "w": 526,
+          "h": 126
+        }
+      }
+    },
+    {
+      "id": "code-strip",
+      "x": 0,
+      "y": 0.8,
+      "w": 1,
+      "h": 0.1,
+      "kind": "chrome",
+      "score": {
+        "overall": 0.8756,
+        "structure": 0.9447,
+        "color": 0.8495,
+        "colorIntersection": 0.7487,
+        "paletteMatch": 0.9037,
+        "detail": 0.7572,
+        "detailRaw": 0.7572,
+        "detailAdded": 0,
+        "bands": 0.9556
+      },
+      "verdict": "match",
+      "inkBox": {
+        "comp": {
+          "x": 25,
+          "y": 0,
+          "w": 526,
+          "h": 103
+        },
+        "build": {
+          "x": 25,
+          "y": 0,
+          "w": 526,
+          "h": 103
+        }
+      }
+    },
+    {
+      "id": "catalogue-index",
+      "x": 0.0313,
+      "y": 0.9004,
+      "w": 0.9375,
+      "h": 0.0586,
+      "kind": "control",
+      "score": {
+        "overall": 0.8681,
+        "structure": 0.9071,
+        "color": 0.9019,
+        "colorIntersection": 0.8251,
+        "paletteMatch": 0.9433,
+        "detail": 0.7214,
+        "detailRaw": 0.737,
+        "detailAdded": 0.0313,
+        "bands": 0.9
+      },
+      "verdict": "match",
+      "inkBox": {
+        "comp": {
+          "x": 7,
+          "y": 0,
+          "w": 526,
+          "h": 49
+        },
+        "build": {
+          "x": 7,
+          "y": 0,
+          "w": 526,
+          "h": 60
+        }
+      }
+    }
+  ],
+  "files": {
+    "sideBySide": "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/hero/side-by-side.png",
+    "heatmap": "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/hero/heatmap.png",
+    "regionFiles": [
+      "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/hero/regions/take-plot.png",
+      "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/hero/regions/status-line.png",
+      "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/hero/regions/style.png",
+      "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/hero/regions/lyrics.png",
+      "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/hero/regions/code-strip.png",
+      "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/hero/regions/catalogue-index.png"
+    ]
+  }
+}

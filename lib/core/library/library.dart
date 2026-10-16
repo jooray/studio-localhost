@@ -7,16 +7,35 @@ import 'package:path/path.dart' as p;
 import '../app_info.dart';
 import '../paths.dart';
 import '../settings.dart';
+import 'catalogue.dart';
 import 'legacy_yue2.dart';
 import 'song.dart';
 
 /// The song library: the app's own folder plus read-only imported folders.
 class Library extends ChangeNotifier {
-  Library(this.settings, this.paths);
+  Library(this.settings, this.paths) : catalogue = Catalogue(Catalogue.fileIn(paths.dataDir));
 
   final Settings settings;
   final AppPaths paths;
+  final Catalogue catalogue;
   List<Song> songs = [];
+
+  /// The song's catalogue number (LRS-###).
+  int? number(Song s) => catalogue.of(s.dir) ?? s.ownNumber;
+
+  Song? byNumber(int n) {
+    for (final s in songs) {
+      if (number(s) == n) return s;
+    }
+    return null;
+  }
+
+  /// Songs in catalogue order, newest number first.
+  List<Song> get byCatalogue {
+    final l = songs.toList();
+    l.sort((a, b) => (number(b) ?? 0).compareTo(number(a) ?? 0));
+    return l;
+  }
 
   Future<void> refresh() async {
     final found = <Song>[];
@@ -36,6 +55,7 @@ class Library extends ChangeNotifier {
       scan(root, true);
     }
     found.sort((a, b) => b.created.compareTo(a.created));
+    catalogue.assign([for (final s in found) (s.dir, s.created, s.ownNumber)]);
     songs = found;
     notifyListeners();
   }
@@ -96,6 +116,7 @@ class Library extends ChangeNotifier {
     final dir = _newDir(title);
     await Directory(p.join(dir, 'work')).create(recursive: true);
     final now = DateTime.now().toIso8601String();
+    final number = catalogue.reserve(dir);
     final meta = <String, dynamic>{
       'format': Song.format,
       'version': Song.formatVersion,
@@ -104,6 +125,7 @@ class Library extends ChangeNotifier {
       'created': now,
       'queued_at': now,
       'status': SongStatus.queued.name,
+      'catalogue': number,
       'app': {'name': appName, 'version': appVersion},
       ...fields,
     };

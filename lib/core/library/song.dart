@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import 'catalogue.dart';
+
 /// Job/song states, shared with the engines (song.json "status").
 enum SongStatus { queued, running, done, failed, cancelled, interrupted }
 
@@ -78,6 +80,25 @@ class Song {
   int? get steps => (params['steps'] as num?)?.toInt();
   String? get precision => params['precision'] as String?;
   double get seconds => (meta['audio_seconds'] as num?)?.toDouble() ?? 0;
+
+  /// Catalogue number stored in song.json (own songs); the library's catalogue is authoritative.
+  int? get ownNumber => (meta['catalogue'] as num?)?.toInt();
+
+  /// The seed behind the song's colour code strip.
+  int get codeSeed => seed ?? seedFromText(id);
+
+  /// Target length in seconds while the song is being made (0 when unknown).
+  double get targetSeconds {
+    final max = params['max_seconds'];
+    if (kind == 'extend') {
+      final e = extend;
+      final start = (e['section_start'] as num?)?.toDouble() ?? 0;
+      final sec = (e['section_seconds'] as num?)?.toDouble() ?? 30;
+      final add = (e['add_seconds'] as num?)?.toDouble();
+      return add == null ? 0 : start + sec + add;
+    }
+    return max is num ? max.toDouble() : 0;
+  }
 
   String? _file(String? name) => name != null && File(p.join(dir, name)).existsSync() ? p.join(dir, name) : null;
 

@@ -6,7 +6,7 @@
   "direction": null,
   "breakpoint": "576x1024",
   "artifact": null,
-  "phase": "hero",
+  "phase": "sections",
   "phases": {
     "comps": {
       "status": "skipped",
@@ -51,17 +51,123 @@
       "forced": null
     },
     "hero": {
-      "status": "open",
+      "status": "closed",
       "openedAt": "2026-10-16T07:39:30.869Z",
-      "closedAt": null,
-      "attempts": 0,
+      "closedAt": "2026-10-16T08:36:07.911Z",
+      "attempts": 1,
       "notes": [],
-      "gate": null,
-      "forced": null
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "hero 88% (match)",
+        "score": 0.8846,
+        "verdict": "match",
+        "report": ".impeccable/review/diff/hero/report.json",
+        "sideBySide": "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/hero/side-by-side.png",
+        "worst": [
+          "status-line drift 77%",
+          "take-plot match 83%",
+          "lyrics match 84%"
+        ],
+        "worstIds": [
+          "status-line",
+          "take-plot",
+          "lyrics"
+        ],
+        "worstCrops": [
+          {
+            "id": "status-line",
+            "verdict": "drift",
+            "score": {
+              "overall": 0.7706,
+              "structure": 0.7378,
+              "color": 0.9292,
+              "colorIntersection": 0.8506,
+              "paletteMatch": 0.9715,
+              "detail": 0.7105,
+              "detailRaw": 0.7574,
+              "detailAdded": 0.0938,
+              "bands": 0.6286
+            },
+            "file": ".impeccable/review/diff/hero/regions/status-line.png"
+          },
+          {
+            "id": "take-plot",
+            "verdict": "match",
+            "score": {
+              "overall": 0.8262,
+              "structure": 0.7328,
+              "color": 0.9535,
+              "colorIntersection": 0.8988,
+              "paletteMatch": 0.983,
+              "detail": 0.7705,
+              "detailRaw": 0.7757,
+              "detailAdded": 0.0104,
+              "bands": 0.925
+            },
+            "file": ".impeccable/review/diff/hero/regions/take-plot.png"
+          },
+          {
+            "id": "lyrics",
+            "verdict": "match",
+            "score": {
+              "overall": 0.8351,
+              "structure": 0.8064,
+              "color": 0.9704,
+              "colorIntersection": 0.9438,
+              "paletteMatch": 0.9847,
+              "detail": 0.7049,
+              "detailRaw": 0.7205,
+              "detailAdded": 0.0313,
+              "bands": 0.8361
+            },
+            "file": ".impeccable/review/diff/hero/regions/lyrics.png"
+          }
+        ],
+        "advisories": [
+          "(advisory, above the 72% bar; fix in the polish pass before responsive) 2 readings:",
+          "  text status-line: ink is #f5f5f4 in the build, #3c3d3d in the comp; use the comp's colour",
+          "  text lyrics: ink is #f2f2f0 in the build, #545454 in the comp; use the comp's colour"
+        ],
+        "regionVerdicts": {
+          "take-plot": "match",
+          "status-line": "drift",
+          "style": "match",
+          "lyrics": "match",
+          "code-strip": "match",
+          "catalogue-index": "match"
+        },
+        "at": "2026-10-16T08:36:07.911Z"
+      },
+      "forced": null,
+      "readingsSeen": {
+        "text status-line: ink is #f5f5f4 in the build, #3c3d3d in the comp; use the comp's colour": 1,
+        "text lyrics: ink is #f2f2f0 in the build, #545454 in the comp; use the comp's colour": 1
+      },
+      "history": [
+        {
+          "at": "2026-10-16T08:36:07.911Z",
+          "score": 0.8846,
+          "worstIds": [
+            "status-line",
+            "take-plot",
+            "lyrics"
+          ],
+          "regionVerdicts": {
+            "take-plot": "match",
+            "status-line": "drift",
+            "style": "match",
+            "lyrics": "match",
+            "code-strip": "match",
+            "catalogue-index": "match"
+          },
+          "artifactHash": null
+        }
+      ]
     },
     "sections": {
-      "status": "pending",
-      "openedAt": null,
+      "status": "open",
+      "openedAt": "2026-10-16T08:36:07.911Z",
       "closedAt": null,
       "attempts": 0,
       "notes": [],

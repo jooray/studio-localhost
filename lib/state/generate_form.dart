@@ -1,7 +1,9 @@
 import 'package:flutter/widgets.dart';
 
 import '../core/jobs/job_queue.dart';
+import '../core/paths.dart';
 import '../core/studio.dart';
+import 'lyric_controller.dart';
 import 'seeds.dart';
 
 /// Generate screen state: the form values and submitting them as one or more queued songs.
@@ -30,7 +32,7 @@ class GenerateForm extends ChangeNotifier {
   final JobQueue queue;
   final title = TextEditingController();
   final style = TextEditingController();
-  final lyrics = TextEditingController();
+  final lyrics = LyricController();
   final abc = TextEditingController();
   final seed = TextEditingController();
   bool instrumental = false;
@@ -55,6 +57,13 @@ class GenerateForm extends ChangeNotifier {
   String get effectiveMode => instrumental ? 'off' : (modes.contains(mode) ? mode : (modes.isEmpty ? '' : modes.first));
   bool get canSubmit =>
       studio.engine != null && (style.text.trim().isNotEmpty || lyrics.text.trim().isNotEmpty);
+
+  /// The etched one-line summary of the recording settings.
+  String get summary => [
+        '${steps}ST',
+        limitLength ? formatDuration(maxSeconds) : 'FULL',
+        if (variants > 1) '×$variants',
+      ].join(' · ');
 
   void randomizeSeed() => update(() => seed.text = '${randomSeed()}');
 

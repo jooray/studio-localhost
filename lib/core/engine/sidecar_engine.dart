@@ -53,6 +53,9 @@ class SidecarEngine extends Engine {
       };
 
   @override
+  String? get fault => process.state == SidecarState.failed ? (process.error ?? 'The engine stopped.') : null;
+
+  @override
   bool get canTokenizeAudio => (_info?['capabilities'] as Map?)?['tokenize_audio'] == true;
 
   @override

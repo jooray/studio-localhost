@@ -32,13 +32,16 @@ class Settings extends ChangeNotifier {
     return s;
   }
 
-  Future<void> save() async {
-    final f = File(_file);
-    await f.parent.create(recursive: true);
-    final tmp = File('$_file.tmp');
-    await tmp.writeAsString(const JsonEncoder.withIndent('  ').convert(_data));
-    await tmp.rename(_file);
-  }
+  Future<void> _saving = Future.value();
+
+  /// Writes are serialised so overlapping saves never race on the temp file.
+  Future<void> save() => _saving = _saving.then((_) async {
+        final f = File(_file);
+        await f.parent.create(recursive: true);
+        final tmp = File('$_file.tmp');
+        await tmp.writeAsString(const JsonEncoder.withIndent('  ').convert(_data));
+        await tmp.rename(_file);
+      }).catchError((_) {});
 
   T _get<T>(String key, T fallback) {
     final v = _data[key];

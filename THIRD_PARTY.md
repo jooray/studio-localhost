@@ -14,12 +14,14 @@ downloaded by the user after accepting its own licence (see "Models").
 | yyjson (vendored in yue2.cpp) | JSON parsing | MIT |
 | minimp3 (vendored in yue2.cpp) | MP3 decoding | CC0-1.0 |
 | mp3enc (in yue2.cpp) | MP3 encoding | MIT |
+| [dr_flac](https://github.com/mackron/dr_libs) (vendored, `android/app/src/main/cpp/vendor/dr_flac.h`, dr_libs commit `dfe8377`) | FLAC decoding on Android (extend a library song) | Public domain (Unlicense) or MIT-0 |
 | `android/patches/yue2-android-hooks.patch` | progress hooks and thread override for yue2.cpp | MIT (this project) |
 | [media_kit](https://github.com/media-kit/media-kit) and `media_kit_libs_*` | audio playback | MIT |
 | libmpv and FFmpeg (prebuilt, shipped by `media_kit_libs_*`) | audio decoding and output | LGPL-2.1-or-later builds, dynamically linked |
 | [provider](https://pub.dev/packages/provider) | state management | MIT |
 | [file_selector](https://pub.dev/packages/file_selector) | open/save dialogs | BSD-3-Clause |
 | [crypto](https://pub.dev/packages/crypto), [path](https://pub.dev/packages/path) | SHA-256, paths | BSD-3-Clause |
+| [Geist and Geist Mono](https://github.com/vercel/geist-font) (bundled in `assets/fonts`, licence text in `assets/fonts/OFL.txt`) | UI typefaces | SIL Open Font License 1.1 |
 | AndroidX Core | FileProvider, compat helpers | Apache-2.0 |
 
 The Flutter "Licences" page in About lists every Dart package with its full licence text.
