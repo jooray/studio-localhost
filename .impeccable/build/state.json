@@ -6,7 +6,7 @@
   "direction": null,
   "breakpoint": "576x1024",
   "artifact": null,
-  "phase": "motion",
+  "phase": "responsive",
   "phases": {
     "comps": {
       "status": "skipped",
@@ -180,21 +180,45 @@
       "forced": null
     },
     "motion": {
-      "status": "open",
+      "status": "closed",
       "openedAt": "2026-10-16T08:51:51.670Z",
-      "closedAt": null,
-      "attempts": 0,
+      "closedAt": "2026-10-16T08:52:08.992Z",
+      "attempts": 1,
       "notes": [],
-      "gate": null,
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "no mechanical gate",
+        "at": "2026-10-16T08:52:08.992Z"
+      },
       "forced": null
     },
     "responsive": {
-      "status": "pending",
-      "openedAt": null,
+      "status": "open",
+      "openedAt": "2026-10-16T08:52:08.992Z",
       "closedAt": null,
-      "attempts": 0,
-      "notes": [],
-      "gate": null,
+      "attempts": 3,
+      "notes": [
+        {
+          "at": "2026-10-16T08:53:24.941Z",
+          "text": "Responsive gate left open: it diffs the top of desktop.png against the portrait comp (34%), which contradicts the user's brief for wide layouts (index as left column, plot + writing side by side, not a stretched phone). Force refused without a user quote downgrading the comp; needs the user's call. mobile.png (390) and tablet.png (1000x1100) captured."
+        }
+      ],
+      "gate": {
+        "ok": false,
+        "reasons": [
+          "the desktop capture (1440x900; the top 576x1024 rows scaled to the comp's width are compared, a full-page capture is fine) scores 34% against the comp, under 65%: the first viewport does not survive a common desktop width. The hero passed at 576x1024; the layout must hold from ~1280 up, not only at the comp's exact width (grid columns in fr / minmax, not fixed px that overflow and wrap).",
+          "at desktop width, region status-line is missing",
+          "at desktop width, region style is missing",
+          "at desktop width, region lyrics is missing",
+          "at desktop width, region code-strip is missing",
+          "at desktop width, region catalogue-index is missing"
+        ],
+        "summary": "desktop 34% (missing)",
+        "score": 0.3395,
+        "sideBySide": "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/desktop/side-by-side.png",
+        "at": "2026-10-16T08:53:20.421Z"
+      },
       "forced": null
     },
     "review": {

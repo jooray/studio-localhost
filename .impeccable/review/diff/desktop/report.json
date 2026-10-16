@@ -1,0 +1,272 @@
+{
+  "tool": "comp-diff",
+  "version": 1,
+  "createdAt": "2026-10-16T08:53:20.421Z",
+  "label": "desktop",
+  "comp": ".impeccable/mocks/comp-3-screen.webp",
+  "build": ".impeccable/review/desktop.png",
+  "spec": ".impeccable/build/spec.json",
+  "compSize": "576x1024",
+  "buildSize": "1440x900",
+  "align": "top",
+  "overall": 0.3395,
+  "verdict": "missing",
+  "scores": {
+    "overall": 0.3395,
+    "structure": 0.2161,
+    "color": 0.769,
+    "colorIntersection": 0.3902,
+    "paletteMatch": 0.973,
+    "detail": 0.1183,
+    "detailRaw": 0.1756,
+    "detailAdded": 0.1146,
+    "bands": 0.28
+  },
+  "palette": {
+    "comp": [
+      {
+        "hex": "#090909",
+        "coverage": 0.8665
+      },
+      {
+        "hex": "#f4f4f4",
+        "coverage": 0.0658
+      },
+      {
+        "hex": "#848484",
+        "coverage": 0.0251
+      },
+      {
+        "hex": "#373737",
+        "coverage": 0.0189
+      },
+      {
+        "hex": "#b9b9b9",
+        "coverage": 0.0123
+      },
+      {
+        "hex": "#606060",
+        "coverage": 0.0114
+      }
+    ],
+    "build": [
+      {
+        "hex": "#f8f8f8",
+        "coverage": 0.6635
+      },
+      {
+        "hex": "#090909",
+        "coverage": 0.3162
+      },
+      {
+        "hex": "#696969",
+        "coverage": 0.0077
+      },
+      {
+        "hex": "#3c3c3c",
+        "coverage": 0.0074
+      },
+      {
+        "hex": "#a0a0a0",
+        "coverage": 0.0044
+      },
+      {
+        "hex": "#c85838",
+        "coverage": 0.0008
+      }
+    ]
+  },
+  "regions": [
+    {
+      "id": "take-plot",
+      "x": 0.1,
+      "y": 0,
+      "w": 0.8,
+      "h": 0.5,
+      "kind": "chrome",
+      "score": {
+        "overall": 0.4201,
+        "structure": 0.2756,
+        "color": 0.905,
+        "colorIntersection": 0.7524,
+        "paletteMatch": 0.9872,
+        "detail": 0.2464,
+        "detailRaw": 0.3089,
+        "detailAdded": 0.125,
+        "bands": 0.2389
+      },
+      "verdict": "contradicted",
+      "inkBox": {
+        "comp": {
+          "x": 0,
+          "y": 38,
+          "w": 460,
+          "h": 474
+        },
+        "build": {
+          "x": 0,
+          "y": 0,
+          "w": 460,
+          "h": 512
+        }
+      }
+    },
+    {
+      "id": "status-line",
+      "x": 0.0313,
+      "y": 0.4473,
+      "w": 0.9375,
+      "h": 0.0527,
+      "kind": "text",
+      "score": {
+        "overall": 0.1193,
+        "structure": 0.1355,
+        "color": 0.0464,
+        "colorIntersection": 0.0403,
+        "paletteMatch": 0.0497,
+        "detail": 0,
+        "detailRaw": 0,
+        "detailAdded": 0,
+        "bands": 0.4
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 7,
+          "y": 6,
+          "w": 526,
+          "h": 48
+        },
+        "build": null
+      }
+    },
+    {
+      "id": "style",
+      "x": 0.0313,
+      "y": 0.5,
+      "w": 0.9375,
+      "h": 0.0996,
+      "kind": "text",
+      "score": {
+        "overall": 0.0845,
+        "structure": 0.0721,
+        "color": 0.0336,
+        "colorIntersection": 0.024,
+        "paletteMatch": 0.0388,
+        "detail": 0,
+        "detailRaw": 0,
+        "detailAdded": 0,
+        "bands": 0.4
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 7,
+          "y": 0,
+          "w": 526,
+          "h": 91
+        },
+        "build": null
+      }
+    },
+    {
+      "id": "lyrics",
+      "x": 0.0313,
+      "y": 0.6055,
+      "w": 0.9375,
+      "h": 0.1348,
+      "kind": "text",
+      "score": {
+        "overall": 0.0822,
+        "structure": 0.0713,
+        "color": 0.0261,
+        "colorIntersection": 0.0214,
+        "paletteMatch": 0.0287,
+        "detail": 0,
+        "detailRaw": 0,
+        "detailAdded": 0,
+        "bands": 0.4
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 7,
+          "y": 8,
+          "w": 526,
+          "h": 122
+        },
+        "build": null
+      }
+    },
+    {
+      "id": "code-strip",
+      "x": 0,
+      "y": 0.8,
+      "w": 1,
+      "h": 0.1,
+      "kind": "chrome",
+      "score": {
+        "overall": 0.1828,
+        "structure": 0.2646,
+        "color": 0.1206,
+        "colorIntersection": 0.107,
+        "paletteMatch": 0.1279,
+        "detail": 0,
+        "detailRaw": 0,
+        "detailAdded": 0,
+        "bands": 0.4
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 25,
+          "y": 0,
+          "w": 526,
+          "h": 103
+        },
+        "build": null
+      }
+    },
+    {
+      "id": "catalogue-index",
+      "x": 0.0313,
+      "y": 0.9004,
+      "w": 0.9375,
+      "h": 0.0586,
+      "kind": "control",
+      "score": {
+        "overall": 0.0659,
+        "structure": 0.1241,
+        "color": 0.0287,
+        "colorIntersection": 0.0251,
+        "paletteMatch": 0.0307,
+        "detail": 0,
+        "detailRaw": 0,
+        "detailAdded": 0,
+        "bands": 0.4
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 7,
+          "y": 0,
+          "w": 526,
+          "h": 49
+        },
+        "build": null
+      }
+    }
+  ],
+  "files": {
+    "sideBySide": "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/desktop/side-by-side.png",
+    "heatmap": "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/desktop/heatmap.png",
+    "regionFiles": [
+      "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/desktop/regions/take-plot.png",
+      "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/desktop/regions/status-line.png",
+      "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/desktop/regions/style.png",
+      "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/desktop/regions/lyrics.png",
+      "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/desktop/regions/code-strip.png",
+      "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/desktop/regions/catalogue-index.png"
+    ]
+  }
+}
