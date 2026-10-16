@@ -46,7 +46,7 @@ MLX), 3.2–4.3 GB for GGUF on Linux.
 
 ## Install
 
-- **Android:** signed APK from the releases page (Zapstore later). arm64-v8a, Android 14+.
+- **Android:** [Zapstore](https://zapstore.dev/apps/io.github.jooray.localhoststudio), or the signed APK from the releases page. arm64-v8a, Android 14+.
 - **macOS:** `Localhost Recording Studio.app` (Apple Silicon recommended). Not notarized yet:
   right-click > Open the first time.
 - **Linux:** build from source (below).
