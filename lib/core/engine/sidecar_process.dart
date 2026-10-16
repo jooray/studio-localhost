@@ -6,16 +6,26 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
-import 'paths.dart';
-import 'settings.dart';
+import '../paths.dart';
 
 enum SidecarState { stopped, starting, ready, failed }
 
-/// The Python engine sidecar, spoken to in JSON lines over stdio.
-class Sidecar extends ChangeNotifier {
-  Sidecar(this.settings);
+/// How to launch the sidecar: which Python and where.
+class SidecarLaunch {
+  const SidecarLaunch({required this.python, required this.cwd, required this.config});
+  final String python;
+  final String cwd;
 
-  final Settings settings;
+  /// Sent with `configure` once the process is up.
+  final Map<String, dynamic> config;
+}
+
+/// The Python engine sidecar (package studio_engine), spoken to in JSON lines over stdio.
+class SidecarProcess extends ChangeNotifier {
+  SidecarProcess(this.launch);
+
+  /// Re-evaluated on every start, so settings changes apply after a restart.
+  final SidecarLaunch Function() launch;
   Process? _proc;
   SidecarState state = SidecarState.stopped;
   String? error;
@@ -61,21 +71,20 @@ class Sidecar extends ChangeNotifier {
     notifyListeners();
     try {
       final src = await extractSidecar();
-      final python = settings.sidecarPython;
+      final l = launch();
+      final python = l.python;
       if (!File(python).existsSync()) {
-        throw StateError('Python not found: $python\nOpen Models > Set up engine, or set the engine path in Settings.');
+        throw StateError('Python not found: $python\nRun the model setup (Settings > Model and engine).');
       }
-      final cwd = settings.backend == 'mlx' && Directory(settings.mlxEngineDir).existsSync()
-          ? settings.mlxEngineDir
-          : AppPaths.instance.dataDir;
+      final cwd = Directory(l.cwd).existsSync() ? l.cwd : AppPaths.instance.dataDir;
       final env = {
         'PYTHONPATH': src,
         'PYTHONUNBUFFERED': '1',
         'MLX_ENABLE_TF32': '0',
         'PYTHONNOUSERSITE': '1',
       };
-      _log('\$ $python -m yue2_sidecar   (cwd $cwd)');
-      final proc = await Process.start(python, ['-m', 'yue2_sidecar'], workingDirectory: cwd, environment: env);
+      _log('\$ $python -m studio_engine   (cwd $cwd)');
+      final proc = await Process.start(python, ['-m', 'studio_engine'], workingDirectory: cwd, environment: env);
       _proc = proc;
       final ready = Completer<void>();
       proc.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
@@ -136,10 +145,16 @@ class Sidecar extends ChangeNotifier {
   }
 
   Future<void> configure() async {
-    final cfg = settings.backendConfig();
+    final cfg = launch().config;
     await request('configure', cfg);
-    configuredBackend = cfg['backend'] as String;
+    configuredBackend = jsonEncode(cfg);
     notifyListeners();
+  }
+
+  /// Reconfigure when the settings produce a different backend configuration.
+  Future<void> ensureConfigured() async {
+    await ensureStarted();
+    if (configuredBackend != jsonEncode(launch().config)) await configure();
   }
 
   Future<Map<String, dynamic>> request(String cmd, [Map<String, dynamic> args = const {}]) {

@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "models": [
+    {
+      "id": "yue2-3b",
+      "name": "YuE2-3B",
+      "family": "yue2",
+      "by": "M-A-P (Multimodal Art Projection)",
+      "summary": "Full songs with vocals from a style description and lyrics, 48 kHz stereo.",
+      "homepage": "https://huggingface.co/m-a-p/YuE2-3B",
+      "licence": {
+        "spdx": "CC-BY-NC-4.0",
+        "name": "Creative Commons Attribution-NonCommercial 4.0 International",
+        "url": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "summary": "Non-commercial use only, with attribution to M-A-P."
+      },
+      "features": {
+        "generate": true,
+        "instrumental": true,
+        "extend": true,
+        "rerender": true,
+        "abc_score": true,
+        "lyrics_sections": true,
+        "planning_modes": ["full", "melody", "off"]
+      },
+      "limits": {
+        "max_seconds": 360,
+        "max_tokens": 9000,
+        "frame_rate": 25,
+        "sample_rate": 48000,
+        "steps": [8, 16, 32],
+        "default_steps": 32
+      },
+      "formats": [
+        {
+          "id": "mlx",
+          "engines": ["sidecar-mlx"],
+          "kind": "hf-snapshot",
+          "repo": "vanch007/mlx-Yue2-3B",
+          "licence_note": "Converted weights by vanch007; weights CC BY-NC 4.0, conversion code Apache-2.0.",
+          "runtime": {
+            "name": "mlx-Yue",
+            "repo": "https://github.com/vanch007/mlx-Yue.git",
+            "commit": "c5b5a8190f78c74aa671a4caa19dae8b8e04b3d8",
+            "licence": "Apache-2.0"
+          },
+          "variants": [
+            {
+              "id": "8bit",
+              "name": "8-bit AR",
+              "note": "Faster, recommended",
+              "bytes": 6125000000,
+              "patterns": ["*.json", "*.md", "*.tiktoken", "LICENSE", "licenses/*", "vae/*", "ar-8bit.safetensors", "nar-bf16.safetensors"]
+            },
+            {
+              "id": "bf16",
+              "name": "bf16 AR",
+              "note": "Reference precision",
+              "bytes": 7800000000,
+              "patterns": ["*.json", "*.md", "*.tiktoken", "LICENSE", "licenses/*", "vae/*", "ar-bf16.safetensors", "nar-bf16.safetensors"]
+            }
+          ]
+        },
+        {
+          "id": "gguf",
+          "engines": ["sidecar-yue2cpp", "android-native"],
+          "kind": "files",
+          "repo": "Serveurperso/YuE2-GGUF",
+          "runtime": {
+            "name": "yue2.cpp",
+            "repo": "https://github.com/ServeurpersoCom/yue2.cpp.git",
+            "commit": "ecf74c145505acc5a726331a3e70a802656b7c31",
+            "licence": "MIT"
+          },
+          "variants": [
+            {
+              "id": "Q5_K_M",
+              "name": "Q5_K_M",
+              "note": "Smallest, some quality loss",
+              "files": [
+                {"role": "backbone", "name": "YuE2-3B-Q5_K_M.gguf", "bytes": 2622936832, "sha256": "cd3efd250b734a229172800f08f33a893ad1f66b521666e176cdae4a0729b281", "url": "https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/main/YuE2-3B-Q5_K_M.gguf?download=true"},
+                {"role": "vae", "name": "YuE2-Vae-F32.gguf", "bytes": 530497344, "sha256": "93e49dfb1970e89ad64cacb17cf13b5d05f6bb30ef7ed3adae3050bcb728638a", "url": "https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/main/YuE2-Vae-F32.gguf?download=true"}
+              ]
+            },
+            {
+              "id": "Q6_K",
+              "name": "Q6_K",
+              "note": "Recommended on phones",
+              "recommended_for": ["android-native"],
+              "files": [
+                {"role": "backbone", "name": "YuE2-3B-Q6_K.gguf", "bytes": 2943331072, "sha256": "42068d5e57713df11b9f6a5a3751072d9bbefe231d1d088f9c100e026ffa4ef9", "url": "https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/main/YuE2-3B-Q6_K.gguf?download=true"},
+                {"role": "vae", "name": "YuE2-Vae-F32.gguf", "bytes": 530497344, "sha256": "93e49dfb1970e89ad64cacb17cf13b5d05f6bb30ef7ed3adae3050bcb728638a", "url": "https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/main/YuE2-Vae-F32.gguf?download=true"}
+              ]
+            },
+            {
+              "id": "Q8_0",
+              "name": "Q8_0",
+              "note": "Near lossless",
+              "recommended_for": ["sidecar-yue2cpp"],
+              "files": [
+                {"role": "backbone", "name": "YuE2-3B-Q8_0.gguf", "bytes": 3810232064, "sha256": "41121ce97786d7795a325bcf123ca196956c03bb252c9e75384cfc1f2fc19e6b", "url": "https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/main/YuE2-3B-Q8_0.gguf?download=true"},
+                {"role": "vae", "name": "YuE2-Vae-F32.gguf", "bytes": 530497344, "sha256": "93e49dfb1970e89ad64cacb17cf13b5d05f6bb30ef7ed3adae3050bcb728638a", "url": "https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/main/YuE2-Vae-F32.gguf?download=true"}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

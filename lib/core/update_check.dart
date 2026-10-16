@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'version.dart';
+import 'app_info.dart';
 
 class UpdateInfo {
   UpdateInfo(this.latest, this.newer, {this.url, this.notes});
@@ -11,13 +11,13 @@ class UpdateInfo {
   final String? notes;
 }
 
-/// Fetch a version from [url]: either plain text ("0.2.0") or JSON
-/// ({"version": "0.2.0", "url": "...", "notes": "..."}). Off unless a URL is configured.
+/// Fetch a version from [url]: either plain text ("0.4.0") or JSON
+/// ({"version": "0.4.0", "url": "...", "notes": "..."}). Off unless a URL is configured.
 Future<UpdateInfo> checkForUpdate(String url) async {
   final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
   try {
     final req = await client.getUrl(Uri.parse(url));
-    req.headers.set(HttpHeaders.userAgentHeader, 'YuE2-Studio/$appVersion');
+    req.headers.set(HttpHeaders.userAgentHeader, 'LocalhostRecordingStudio/$appVersion');
     final res = await req.close().timeout(const Duration(seconds: 15));
     if (res.statusCode != 200) throw HttpException('HTTP ${res.statusCode}');
     final body = (await res.transform(utf8.decoder).join()).trim();

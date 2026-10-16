@@ -2,8 +2,12 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-/// Platform locations. macOS: ~/Library/Application Support/YuE2 Studio,
-/// Linux: $XDG_DATA_HOME/yue2-studio (default ~/.local/share/yue2-studio).
+import 'platform/android_bridge.dart';
+
+/// Where the app keeps its data.
+/// macOS: ~/Library/Application Support/Localhost Recording Studio
+/// Linux: $XDG_DATA_HOME/localhost-recording-studio (default ~/.local/share/...)
+/// Android: the app-specific external files dir (`Android/data/<id>/files`)
 class AppPaths {
   AppPaths._(this.dataDir);
 
@@ -13,13 +17,19 @@ class AppPaths {
 
   static String get home => Platform.environment['HOME'] ?? '/';
 
-  static AppPaths init() {
+  static Future<AppPaths> init() async {
     String dir;
-    if (Platform.isMacOS) {
-      dir = p.join(home, 'Library', 'Application Support', 'YuE2 Studio');
+    final override = Platform.environment['STUDIO_DATA_DIR'];
+    if (override != null && override.isNotEmpty) {
+      dir = override;
+    } else if (Platform.isAndroid) {
+      final m = await AndroidBridge.map('paths');
+      dir = m['data'] as String;
+    } else if (Platform.isMacOS) {
+      dir = p.join(home, 'Library', 'Application Support', 'Localhost Recording Studio');
     } else {
       final xdg = Platform.environment['XDG_DATA_HOME'];
-      dir = p.join((xdg != null && xdg.isNotEmpty) ? xdg : p.join(home, '.local', 'share'), 'yue2-studio');
+      dir = p.join((xdg != null && xdg.isNotEmpty) ? xdg : p.join(home, '.local', 'share'), 'localhost-recording-studio');
     }
     Directory(dir).createSync(recursive: true);
     instance = AppPaths._(dir);
@@ -28,13 +38,17 @@ class AppPaths {
 
   String get settingsFile => p.join(dataDir, 'settings.json');
   String get libraryDir => p.join(dataDir, 'library');
+  String get modelsDir => p.join(dataDir, 'models');
   String get sidecarDir => p.join(dataDir, 'sidecar');
   String get sidecarVenv => p.join(dataDir, 'sidecar-venv');
-  String get engineDir => p.join(dataDir, 'engine');
-  String get mlxEngineDir => p.join(engineDir, 'mlx-Yue');
-  String get yue2cppDir => p.join(engineDir, 'yue2.cpp');
-  String get ggufDir => p.join(dataDir, 'models', 'gguf');
+  String get enginesDir => p.join(dataDir, 'engines');
   String get logsDir => p.join(dataDir, 'logs');
+
+  /// Folder for one runtime's checkout (e.g. a git clone built or synced by the setup flow).
+  String runtimeDir(String name) => p.join(enginesDir, name);
+
+  /// Folder holding one model format's files.
+  String modelDir(String modelId, String formatId) => p.join(modelsDir, modelId, formatId);
 
   static String venvPython(String venv) =>
       Platform.isWindows ? p.join(venv, 'Scripts', 'python.exe') : p.join(venv, 'bin', 'python');
@@ -63,8 +77,11 @@ class AppPaths {
     return which('ffmpeg');
   }
 
-  /// Free bytes on the volume holding [path] (via `df -k`, works on macOS and Linux).
+  /// Free bytes on the volume holding [path].
   static Future<int?> freeBytes(String path) async {
+    if (Platform.isAndroid) {
+      return (await AndroidBridge.call<num>('freeBytes', {'path': path}))?.toInt();
+    }
     var dir = Directory(path);
     while (!dir.existsSync() && dir.parent.path != dir.path) {
       dir = dir.parent;
@@ -74,7 +91,6 @@ class AppPaths {
       final lines = (r.stdout as String).trim().split('\n');
       if (lines.length < 2) return null;
       final cols = lines.last.trim().split(RegExp(r'\s+'));
-      // Filesystem 1024-blocks Used Available ...
       return int.parse(cols[3]) * 1024;
     } catch (_) {
       return null;
@@ -84,14 +100,10 @@ class AppPaths {
   static Future<void> reveal(String path) async {
     if (Platform.isMacOS) {
       await Process.run('open', ['-R', path]);
-    } else {
+    } else if (Platform.isLinux) {
       final target = FileSystemEntity.isDirectorySync(path) ? path : p.dirname(path);
       await Process.run('xdg-open', [target]);
     }
-  }
-
-  static Future<void> openPath(String path) async {
-    await Process.run(Platform.isMacOS ? 'open' : 'xdg-open', [path]);
   }
 }
 

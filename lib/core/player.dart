@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 
-/// One shared audio player (media_kit / libmpv: macOS and Linux).
+/// One shared audio player (media_kit / libmpv on every platform).
 class AudioPlayerModel extends ChangeNotifier {
   AudioPlayerModel() {
     _subs.addAll([
@@ -32,7 +32,7 @@ class AudioPlayerModel extends ChangeNotifier {
     ]);
   }
 
-  final Player _player = Player(configuration: const PlayerConfiguration(title: 'YuE2 Studio'));
+  final Player _player = Player(configuration: const PlayerConfiguration(title: 'Localhost Recording Studio'));
   final List<StreamSubscription> _subs = [];
   String? path;
   String? title;

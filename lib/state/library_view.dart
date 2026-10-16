@@ -1,0 +1,67 @@
+import 'package:flutter/foundation.dart';
+
+import '../core/export.dart';
+import '../core/jobs/job_queue.dart';
+import '../core/library/library.dart';
+import '../core/library/song.dart';
+import '../core/player.dart';
+import '../core/studio.dart';
+
+/// Library screen state and song actions.
+class LibraryView extends ChangeNotifier {
+  LibraryView(this.studio, this.library, this.queue, this.player) : exporter = Exporter(studio);
+
+  final Studio studio;
+  final Library library;
+  final JobQueue queue;
+  final AudioPlayerModel player;
+  final Exporter exporter;
+  String filter = '';
+
+  void setFilter(String v) {
+    filter = v;
+    notifyListeners();
+  }
+
+  List<Song> get songs => library.songs
+      .where((s) => filter.isEmpty || '${s.title} ${s.style}'.toLowerCase().contains(filter.toLowerCase()))
+      .toList();
+
+  bool canExtend(Song s) => (studio.model?.features.extend ?? false) && s.status == SongStatus.done && s.hasTokens && s.hasAudio;
+  bool canRerender(Song s) => (studio.model?.features.rerender ?? false) && s.status == SongStatus.done && s.hasTokens;
+
+  /// One quiet line: the model and its licence.
+  String modelLine(Song s) {
+    final m = studio.registry.byId(s.modelId);
+    final name = m?.name ?? s.modelId ?? 'unknown model';
+    final lic = s.licenceId ?? m?.licence.spdx;
+    return lic == null ? name : '$name · $lic';
+  }
+
+  Future<void> rerender(Song s, {required int steps, required int seed}) => queue.submit(
+        '${s.title.replaceAll(RegExp(r' \((extended|re-render)\)$'), '')} (re-render)',
+        {
+          'kind': 'rerender',
+          'parent': s.id,
+          'source_dir': s.dir,
+          'params': {
+            ...s.params,
+            'seed': seed,
+            'steps': steps,
+          },
+        },
+      );
+
+  Future<void> delete(Song s) async {
+    await player.stopIf(s.dir);
+    await library.delete(s);
+  }
+
+  Future<void> rename(Song s, String title) => library.rename(s, title);
+  Future<void> resume(Song s) => queue.resume(s);
+  Future<void> cancel(Song s) => queue.cancel(s);
+  void toggle(Song s) {
+    final a = s.audioPath;
+    if (a != null) player.toggle(a, title: s.title);
+  }
+}

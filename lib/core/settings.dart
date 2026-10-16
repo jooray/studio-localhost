@@ -6,24 +6,27 @@ import 'package:path/path.dart' as p;
 
 import 'paths.dart';
 
-/// Persistent settings (JSON in the app data dir).
+/// Persistent settings: JSON in the app data dir. Machine-specific paths live only here
+/// (or come from auto-detection), never in the source.
 class Settings extends ChangeNotifier {
   Settings(this._file);
 
   final String _file;
   Map<String, dynamic> _data = {};
 
-  static const _knownMlxEngine = '/Users/juraj/tmp/yue2/mlx-Yue';
-  static const _knownOutputs = '/Users/juraj/tmp/yue2/outputs';
-
   static Future<Settings> load(AppPaths paths) async {
     final s = Settings(paths.settingsFile);
+    final f = File(paths.settingsFile);
+    final fresh = !f.existsSync();
     try {
-      final f = File(paths.settingsFile);
-      if (f.existsSync()) s._data = jsonDecode(await f.readAsString()) as Map<String, dynamic>;
+      if (!fresh) s._data = jsonDecode(await f.readAsString()) as Map<String, dynamic>;
     } catch (_) {}
-    if (!s._data.containsKey('importRoots')) {
-      s._data['importRoots'] = [if (Directory(_knownOutputs).existsSync()) _knownOutputs];
+    if (fresh && !Platform.isAndroid) {
+      // Songs made by the earlier desktop app (YuE2 Studio 0.1) show up read-only.
+      final legacy = Platform.isMacOS
+          ? p.join(AppPaths.home, 'Library', 'Application Support', 'YuE2 Studio', 'library')
+          : p.join(AppPaths.home, '.local', 'share', 'yue2-studio', 'library');
+      if (Directory(legacy).existsSync()) s._data['importRoots'] = [legacy];
     }
     await s.save();
     return s;
@@ -42,8 +45,10 @@ class Settings extends ChangeNotifier {
     return v is T ? v : fallback;
   }
 
+  String str(String key) => _get(key, '');
+
   void set(String key, Object? value) {
-    if (value == null) {
+    if (value == null || (value is String && value.isEmpty)) {
       _data.remove(key);
     } else {
       _data[key] = value;
@@ -52,107 +57,46 @@ class Settings extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---------------------------------------------------------------- backend
+  // ---------------------------------------------------------------- engine and model
 
-  static String get platformDefaultBackend {
-    if (Platform.isMacOS) {
-      // mlx only runs on Apple Silicon; Intel Macs fall back to yue2.cpp.
-      final arch = Process.runSync('uname', ['-m']).stdout.toString().trim();
-      return arch == 'arm64' ? 'mlx' : 'yue2cpp';
-    }
-    return 'yue2cpp';
+  /// '' = choose by hardware.
+  String get engineOverride => _get('engine', '');
+  set engineOverride(String v) => set('engine', v);
+
+  String get activeModel => _get('activeModel', '');
+  set activeModel(String v) => set('activeModel', v);
+
+  String? variantFor(String modelId, String formatId) => (_get<Map>('variants', const {}))['$modelId/$formatId'] as String?;
+  void setVariant(String modelId, String formatId, String variantId) {
+    final m = Map<String, dynamic>.from(_get<Map>('variants', const {}));
+    m['$modelId/$formatId'] = variantId;
+    set('variants', m);
   }
 
-  /// '' = automatic by platform.
-  String get backendOverride => _get('backend', '');
-  String get backend => backendOverride.isEmpty ? platformDefaultBackend : backendOverride;
+  /// Licences the user accepted: [{model, licence, accepted}]
+  List<Map<String, dynamic>> get acceptedLicences =>
+      [for (final e in _get<List>('acceptedLicences', const [])) Map<String, dynamic>.from(e as Map)];
 
-  // mlx
-  String get mlxEngineDir {
-    final v = _get('mlxEngineDir', '');
-    if (v.isNotEmpty) return v;
-    if (Directory(_knownMlxEngine).existsSync()) return _knownMlxEngine;
-    return AppPaths.instance.mlxEngineDir;
+  bool licenceAccepted(String modelId, String spdx) =>
+      acceptedLicences.any((e) => e['model'] == modelId && e['licence'] == spdx);
+
+  void acceptLicence(String modelId, String spdx) {
+    if (licenceAccepted(modelId, spdx)) return;
+    set('acceptedLicences', [
+      ...acceptedLicences,
+      {'model': modelId, 'licence': spdx, 'accepted': DateTime.now().toIso8601String()},
+    ]);
   }
 
-  String get mlxModelDir {
-    final v = _get('mlxModelDir', '');
-    return v.isNotEmpty ? v : p.join(mlxEngineDir, 'models', 'mlx-Yue2-3B');
-  }
+  /// Set when the first-run setup finished (the setup flow stays reachable from Settings).
+  bool get setupComplete => _get('setupComplete', false);
+  set setupComplete(bool v) => set('setupComplete', v);
 
-  String get mlxVaeDir {
-    final v = _get('mlxVaeDir', '');
-    if (v.isNotEmpty) return v;
-    final plain = p.join(mlxEngineDir, 'models', 'vae');
-    final bundled = p.join(mlxModelDir, 'vae');
-    return !Directory(plain).existsSync() && Directory(bundled).existsSync() ? bundled : plain;
-  }
-
-  String get mlxPython => AppPaths.venvPython(p.join(mlxEngineDir, '.venv'));
-
-  // yue2.cpp
-  String get yue2cppBinDir {
-    final v = _get('yue2cppBinDir', '');
-    return v.isNotEmpty ? v : p.join(AppPaths.instance.yue2cppDir, 'build');
-  }
-
-  String get ggufQuant => _get('ggufQuant', 'Q8_0');
-  String get ggufModel {
-    final v = _get('ggufModel', '');
-    return v.isNotEmpty ? v : p.join(AppPaths.instance.ggufDir, 'YuE2-3B-$ggufQuant.gguf');
-  }
-
-  String get ggufVae {
-    final v = _get('ggufVae', '');
-    return v.isNotEmpty ? v : p.join(AppPaths.instance.ggufDir, 'YuE2-Vae-F32.gguf');
-  }
-
-  String get yue2cppDevice => _get('yue2cppDevice', '');
-
-  // torch (stub)
-  String get torchPython => _get('torchPython', '');
-
-  /// Python that runs the sidecar for the active backend.
-  String get sidecarPython {
-    final override = _get('sidecarPython', '');
-    if (override.isNotEmpty) return override;
-    switch (backend) {
-      case 'mlx':
-        return mlxPython;
-      case 'torch':
-        if (torchPython.isNotEmpty) return torchPython;
-        break;
-    }
-    final own = AppPaths.venvPython(AppPaths.instance.sidecarVenv);
-    if (File(own).existsSync()) return own;
-    // On a Mac with the mlx engine installed, its venv has numpy+soundfile too.
-    if (File(mlxPython).existsSync()) return mlxPython;
-    return own;
-  }
+  /// Per-runtime overrides, e.g. runtime.mlx.dir, runtime.yue2cpp.binDir, runtime.yue2cpp.device.
+  String runtime(String key) => _get('runtime.$key', '');
+  void setRuntime(String key, String value) => set('runtime.$key', value);
 
   String get sidecarPythonOverride => _get('sidecarPython', '');
-
-  Map<String, dynamic> backendConfig() {
-    switch (backend) {
-      case 'mlx':
-        return {
-          'backend': 'mlx',
-          'engine_dir': mlxEngineDir,
-          'model_dir': mlxModelDir,
-          'vae_dir': mlxVaeDir,
-        };
-      case 'yue2cpp':
-        return {
-          'backend': 'yue2cpp',
-          'yue2cpp_bin_dir': yue2cppBinDir,
-          'gguf_model': ggufModel,
-          'gguf_vae': ggufVae,
-          if (yue2cppDevice.isNotEmpty) 'device': yue2cppDevice,
-        };
-      default:
-        return {'backend': backend};
-    }
-  }
 
   // ---------------------------------------------------------------- library
 
@@ -186,12 +130,10 @@ class Settings extends ChangeNotifier {
     save();
   }
 
-  // Last form values, so the Generate page survives restarts.
+  // Last form values, so the Generate screen survives restarts.
   Map<String, dynamic> get lastForm => Map<String, dynamic>.from(_get<Map>('lastForm', const {}));
   set lastForm(Map<String, dynamic> v) {
     _data['lastForm'] = v;
     save();
   }
-
-  String raw(String key) => _get(key, '');
 }
