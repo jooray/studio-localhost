@@ -6,7 +6,7 @@
   "direction": null,
   "breakpoint": "576x1024",
   "artifact": null,
-  "phase": "sections",
+  "phase": "motion",
   "phases": {
     "comps": {
       "status": "skipped",
@@ -166,17 +166,22 @@
       ]
     },
     "sections": {
-      "status": "open",
+      "status": "closed",
       "openedAt": "2026-10-16T08:36:07.911Z",
-      "closedAt": null,
-      "attempts": 0,
+      "closedAt": "2026-10-16T08:51:51.670Z",
+      "attempts": 1,
       "notes": [],
-      "gate": null,
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "no mechanical gate",
+        "at": "2026-10-16T08:51:51.669Z"
+      },
       "forced": null
     },
     "motion": {
-      "status": "pending",
-      "openedAt": null,
+      "status": "open",
+      "openedAt": "2026-10-16T08:51:51.670Z",
       "closedAt": null,
       "attempts": 0,
       "notes": [],

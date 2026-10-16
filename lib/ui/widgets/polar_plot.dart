@@ -115,20 +115,27 @@ class _PolarPlotState extends State<PolarPlot> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     _prepare();
-    Widget plot = AnimatedBuilder(
-      animation: _pulse,
-      builder: (_, _) => CustomPaint(
-        painter: _PlotPainter(
-          peaks: _peaks,
-          rms: _rms,
-          arc: widget.arc,
-          grow: widget.grow,
-          seed: widget.seed,
-          pulse: widget.live ? math.sin(_pulse.value * 2 * math.pi) : 0,
-          mini: widget.mini,
-          section: widget.section,
+    final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    Widget plot = TweenAnimationBuilder<double>(
+      // The arc glides between progress reports instead of jumping.
+      tween: Tween(end: widget.arc ?? 0),
+      duration: reduce ? Duration.zero : const Duration(milliseconds: 900),
+      curve: Sleeve.ease,
+      builder: (_, arc, _) => AnimatedBuilder(
+        animation: _pulse,
+        builder: (_, _) => CustomPaint(
+          painter: _PlotPainter(
+            peaks: _peaks,
+            rms: _rms,
+            arc: widget.arc == null ? null : arc,
+            grow: widget.grow,
+            seed: widget.seed,
+            pulse: widget.live ? math.sin(_pulse.value * 2 * math.pi) : 0,
+            mini: widget.mini,
+            section: widget.section,
+          ),
+          size: Size.infinite,
         ),
-        size: Size.infinite,
       ),
     );
     if (widget.onSeek != null) {
@@ -142,7 +149,11 @@ class _PolarPlotState extends State<PolarPlot> with SingleTickerProviderStateMix
         ),
       );
     }
-    return Semantics(label: widget.semanticLabel, image: true, child: RepaintBoundary(child: plot));
+    return Semantics(
+      label: widget.semanticLabel,
+      image: true,
+      child: RepaintBoundary(child: plot),
+    );
   }
 }
 
@@ -211,14 +222,22 @@ class _PlotPainter extends CustomPainter {
         ..strokeWidth = arcW * 2.2
         ..strokeCap = StrokeCap.butt
         ..color = Sleeve.ink;
-      canvas.drawArc(Rect.fromCircle(center: c, radius: r - arcW * 3), -math.pi / 2 + s0 * 2 * math.pi,
-          (s1 - s0).clamp(0.002, 1.0) * 2 * math.pi, false, sec);
+      canvas.drawArc(
+        Rect.fromCircle(center: c, radius: r - arcW * 3),
+        -math.pi / 2 + s0 * 2 * math.pi,
+        (s1 - s0).clamp(0.002, 1.0) * 2 * math.pi,
+        false,
+        sec,
+      );
       for (final s in [s0, s1]) {
         final a = s * 2 * math.pi;
-        canvas.drawLine(c + Offset(math.sin(a), -math.cos(a)) * hole, c + Offset(math.sin(a), -math.cos(a)) * r,
-            Paint()
-              ..color = Sleeve.ink
-              ..strokeWidth = hair * 1.5);
+        canvas.drawLine(
+          c + Offset(math.sin(a), -math.cos(a)) * hole,
+          c + Offset(math.sin(a), -math.cos(a)) * r,
+          Paint()
+            ..color = Sleeve.ink
+            ..strokeWidth = hair * 1.5,
+        );
       }
     }
 
@@ -229,6 +248,18 @@ class _PlotPainter extends CustomPainter {
         ..strokeCap = StrokeCap.butt
         ..color = Sleeve.ink;
       canvas.drawArc(Rect.fromCircle(center: c, radius: r), -math.pi / 2, arc!.clamp(0.0, 1.0) * 2 * math.pi, false, p);
+      if (pulse != 0) {
+        // Recording: the head of the arc scans inward, breathing with the burst.
+        final a = arc!.clamp(0.0, 1.0) * 2 * math.pi;
+        final dir = Offset(math.sin(a), -math.cos(a));
+        canvas.drawLine(
+          c + dir * (r * 0.30),
+          c + dir * r,
+          Paint()
+            ..color = Sleeve.ink.withValues(alpha: 0.35 + 0.25 * pulse)
+            ..strokeWidth = hair,
+        );
+      }
     }
   }
 
@@ -274,10 +305,14 @@ class _PlotPainter extends CustomPainter {
       final dir = Offset(math.sin(a), -math.cos(a));
       canvas.drawLine(c + dir * hole, c + dir * (hole + span * 0.7 * len), p);
     }
-    canvas.drawCircle(c, hole, Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = mini ? 0.75 : 1.2
-      ..color = Sleeve.ink);
+    canvas.drawCircle(
+      c,
+      hole,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = mini ? 0.75 : 1.2
+        ..color = Sleeve.ink,
+    );
   }
 
   @override
