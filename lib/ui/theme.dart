@@ -62,12 +62,17 @@ abstract final class SleeveType {
       TextStyle(fontFamily: Sleeve.mono, fontWeight: FontWeight.w300, fontSize: 30 * u, height: 1.0, color: color);
 
   /// Small engraved caps, wide tracked (data labels, etched lines, cells).
-  static TextStyle etched(double u, {Color color = Sleeve.inkSoft, double size = 13, FontWeight weight = FontWeight.w400}) =>
-      TextStyle(fontFamily: Sleeve.mono, fontWeight: weight, fontSize: size * u, height: 1.2, color: color, letterSpacing: size * u * 0.16);
+  static TextStyle etched(double u, {Color color = Sleeve.inkSoft, double size = 13, FontWeight weight = FontWeight.w400}) {
+    final px = floor(size * u);
+    return TextStyle(fontFamily: Sleeve.mono, fontWeight: weight, fontSize: px, height: 1.2, color: color, letterSpacing: px * 0.16);
+  }
+
+  /// Nothing set in this world drops below 11 logical px.
+  static double floor(double px) => px < 11 ? 11 : px;
 
   /// Values in data lists.
   static TextStyle value(double u, {Color color = Sleeve.ink, double size = 15}) =>
-      TextStyle(fontFamily: Sleeve.mono, fontWeight: FontWeight.w400, fontSize: size * u, height: 1.3, color: color, letterSpacing: size * u * 0.04);
+      TextStyle(fontFamily: Sleeve.mono, fontWeight: FontWeight.w400, fontSize: floor(size * u), height: 1.3, color: color, letterSpacing: floor(size * u) * 0.04);
 
   /// Display numerals (song detail heading).
   static TextStyle display(double u, {Color color = Sleeve.ink}) => TextStyle(

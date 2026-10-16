@@ -58,6 +58,7 @@ class _StudioAppState extends State<StudioApp> {
       title: appName,
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: _messenger,
+      navigatorKey: Snapshot.navigator,
       theme: buildTheme(),
       themeMode: ThemeMode.dark,
       builder: Snapshot.active

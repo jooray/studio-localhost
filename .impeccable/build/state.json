@@ -6,7 +6,7 @@
   "direction": null,
   "breakpoint": "576x1024",
   "artifact": null,
-  "phase": "responsive",
+  "phase": "review",
   "phases": {
     "comps": {
       "status": "skipped",
@@ -194,10 +194,10 @@
       "forced": null
     },
     "responsive": {
-      "status": "open",
+      "status": "closed",
       "openedAt": "2026-10-16T08:52:08.992Z",
-      "closedAt": null,
-      "attempts": 3,
+      "closedAt": "2026-10-16T09:46:25.106Z",
+      "attempts": 4,
       "notes": [
         {
           "at": "2026-10-16T08:53:24.941Z",
@@ -217,13 +217,24 @@
         "summary": "desktop 34% (missing)",
         "score": 0.3395,
         "sideBySide": "/Users/juraj/projects/studio-localhost/.impeccable/review/diff/desktop/side-by-side.png",
-        "at": "2026-10-16T08:53:20.421Z"
+        "at": "2026-10-16T09:46:25.103Z"
       },
-      "forced": null
+      "forced": {
+        "at": "2026-10-16T09:46:25.106Z",
+        "reason": "User answered 2026-10-16: 'Yes, approve' to: 'Approve that the phone comp governs phones only and wide screens follow this adapted layout?' (side-by-side index column · plot · writing on tablet/unfolded Fold/desktop)",
+        "reasons": [
+          "the desktop capture (1440x900; the top 576x1024 rows scaled to the comp's width are compared, a full-page capture is fine) scores 34% against the comp, under 65%: the first viewport does not survive a common desktop width. The hero passed at 576x1024; the layout must hold from ~1280 up, not only at the comp's exact width (grid columns in fr / minmax, not fixed px that overflow and wrap).",
+          "at desktop width, region status-line is missing",
+          "at desktop width, region style is missing",
+          "at desktop width, region lyrics is missing",
+          "at desktop width, region code-strip is missing",
+          "at desktop width, region catalogue-index is missing"
+        ]
+      }
     },
     "review": {
-      "status": "pending",
-      "openedAt": null,
+      "status": "open",
+      "openedAt": "2026-10-16T09:46:25.106Z",
       "closedAt": null,
       "attempts": 0,
       "notes": [],

@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../core/library/library.dart';
 import 'screens/catalogue_screen.dart';
 import 'screens/extend_screen.dart';
+import 'screens/record_sheet.dart';
 import 'screens/settings_screen.dart';
 import 'screens/setup_screen.dart';
 import 'screens/song_screen.dart';
@@ -38,6 +39,10 @@ abstract final class Snapshot {
   static final active = (Platform.environment['STUDIO_SNAPSHOT'] ?? '').isNotEmpty;
   static final current = ValueNotifier<Shot?>(null);
   static final key = GlobalKey();
+  static final navigator = GlobalKey<NavigatorState>();
+
+  /// Puts the app into the state a shot needs (demo states, long lyrics); set by main.
+  static Future<void> Function(Shot shot)? prepare;
 
   static List<Shot> get shots => [
         for (final s in (Platform.environment['STUDIO_SNAPSHOT_SHOTS'] ?? 'main@576x1024=main.png').split(';'))
@@ -49,6 +54,8 @@ abstract final class Snapshot {
     await Directory(dir).create(recursive: true);
     await Future.delayed(const Duration(seconds: 2));
     for (final s in shots) {
+      navigator.currentState?.popUntil((r) => r.isFirst);
+      await prepare?.call(s);
       current.value = s;
       await Future.delayed(const Duration(milliseconds: 2500));
       await WidgetsBinding.instance.endOfFrame;
@@ -107,6 +114,7 @@ class SnapshotScreen extends StatelessWidget {
           String idOf(int n) => lib.byNumber(n)?.id ?? (lib.songs.isEmpty ? '' : lib.songs.first.id);
           return switch (shot?.screen) {
             'catalogue' => const CatalogueScreen(),
+            'sheet' => _SheetOpener(key: ValueKey(shot!.file)),
             'song' => SongScreen(idOf(14)),
             'extend' => ExtendScreen(sourceId: idOf(14)),
             'setup' => const SetupScreen(),
@@ -115,4 +123,25 @@ class SnapshotScreen extends StatelessWidget {
           };
         },
       );
+}
+
+/// The studio with the recording sheet open.
+class _SheetOpener extends StatefulWidget {
+  const _SheetOpener({super.key});
+
+  @override
+  State<_SheetOpener> createState() => _SheetOpenerState();
+}
+
+class _SheetOpenerState extends State<_SheetOpener> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showRecordSheet(context);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const StudioScreen();
 }

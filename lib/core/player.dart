@@ -62,6 +62,7 @@ class AudioPlayerModel extends ChangeNotifier {
   }
 
   Future<void> pause() => _player.pause();
+  Future<void> setVolume(double v) => _player.setVolume(v);
   Future<void> seek(Duration d) => _player.seek(d);
 
   Future<void> stopIf(String dirPrefix) async {

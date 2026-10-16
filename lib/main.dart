@@ -24,6 +24,7 @@ import 'state/library_view.dart';
 import 'state/nav.dart';
 import 'state/take.dart';
 import 'ui/app.dart';
+import 'ui/screens/studio_screen.dart' show studioScrollToEnd;
 import 'ui/snapshot.dart';
 import 'ui/ui_test.dart';
 
@@ -92,6 +93,14 @@ Future<void> main() async {
     FlutterError.onError = (d) {
       final lines = (d.stack?.toString() ?? '').split('\n');
       stderr.writeln('SNAPSHOT ERROR: ${d.exceptionAsString()}\n${lines.take(40).join('\n')}');
+    };
+    final original = form.lyrics.text;
+    Snapshot.prepare = (shot) async {
+      studioScrollToEnd.value = shot.screen == 'mainlong';
+      form.lyrics.text = shot.screen == 'mainlong' ? Demo.forty() : original;
+      if (demo.isNotEmpty && const ['idle', 'playing', 'error'].contains(shot.screen)) {
+        await Demo.state(shot.screen, demo, library, queue, player);
+      }
     };
     unawaited(Snapshot.run());
   }

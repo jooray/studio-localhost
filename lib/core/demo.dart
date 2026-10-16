@@ -10,6 +10,7 @@ import 'library/envelopes.dart';
 import 'library/library.dart';
 import 'library/song.dart';
 import 'paths.dart';
+import 'player.dart';
 import 'settings.dart';
 
 /// Demo content for captures (`STUDIO_DEMO=<folder with song folders>`): the approved comp's
@@ -101,6 +102,46 @@ class Demo {
     queue.live[s.id] = j;
     final e = await computeEnvelope(p.join(sourceRoot, sources[15]!, 'audio.flac'), bins: Envelopes.bins);
     if (e != null) envelopes.pin(s.dir, e);
+  }
+
+
+  /// Lyrics of 40 lines (captures of the growing sheet).
+  static String forty() {
+    final b = StringBuffer();
+    const tags = ['[Verse]', '[Pre-Chorus]', '[Chorus]', '[Bridge]'];
+    for (var i = 0; i < 40; i++) {
+      if (i % 8 == 0) b.writeln(tags[(i ~/ 8) % tags.length]);
+      b.writeln('Line ${i + 1}: neon fades along the lane, footsteps keep the time');
+    }
+    return b.toString();
+  }
+
+  /// Put LRS-015 into a state: running (as seeded), idle (finished), playing, or failed.
+  static Future<void> state(String name, String sourceRoot, Library library, JobQueue queue, AudioPlayerModel player) async {
+    final s = library.byId('demo-lrs-15');
+    if (s == null) return;
+    final audio = p.join(s.dir, 'audio.flac');
+    if (name == 'idle' || name == 'playing') {
+      queue.live.remove(s.id);
+      final link = Link(audio);
+      if (!link.existsSync()) await link.create(p.join(sourceRoot, sources[15]!, 'audio.flac'));
+      await library.patch(s, {'status': 'done', 'audio': 'audio.flac', 'audio_seconds': 299.92, 'error': null});
+      if (name == 'playing') {
+        await player.setVolume(0);
+        await player.play(audio, title: 'LRS-015');
+        await Future.delayed(const Duration(milliseconds: 600));
+        await player.seek(const Duration(seconds: 62));
+      } else {
+        await player.stopIf(s.dir);
+      }
+    } else if (name == 'error') {
+      await player.stopIf(s.dir);
+      queue.live.remove(s.id);
+      await library.patch(s, {'status': 'failed', 'error': 'Engine process exited (code -9): out of memory while loading the model'});
+      queue.recent
+        ..remove(s.id)
+        ..add(s.id);
+    }
   }
 
   static Map<String, dynamic> _json(String path) {

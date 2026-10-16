@@ -1,7 +1,7 @@
 {
   "tool": "comp-diff",
   "version": 1,
-  "createdAt": "2026-10-16T08:53:20.421Z",
+  "createdAt": "2026-10-16T09:46:25.102Z",
   "label": "desktop",
   "comp": ".impeccable/mocks/comp-3-screen.webp",
   "build": ".impeccable/review/desktop.png",

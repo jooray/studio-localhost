@@ -60,7 +60,7 @@ class GenerateForm extends ChangeNotifier {
 
   /// The etched one-line summary of the recording settings.
   String get summary => [
-        '${steps}ST',
+        '$steps STEPS',
         limitLength ? formatDuration(maxSeconds) : 'FULL',
         if (variants > 1) '×$variants',
       ].join(' · ');
