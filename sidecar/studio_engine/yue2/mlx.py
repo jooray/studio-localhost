@@ -1,4 +1,4 @@
-"""mlx backend: wraps lyra (vanch007/mlx-Yue) without modifying it.
+"""YuE2 on MLX: wraps lyra (vanch007/mlx-Yue) without modifying it.
 
 Must run inside the mlx-Yue virtual environment (lyra + yue2 importable). The pipeline stays
 resident between jobs; it is rebuilt only when the AR precision or the model paths change.
@@ -19,9 +19,9 @@ from pathlib import Path
 
 import numpy as np
 
-from .backend_base import Backend
-from .common import (CONTEXT, FRAME_RATE, SEMANTIC_MAX_TOKENS, Cancelled, continuation_budget,
-                     shape_request)
+from ..backend_base import Backend
+from ..common import Cancelled
+from .prompt import FRAME_RATE, SAMPLE_RATE, SEMANTIC_MAX_TOKENS, continuation_budget, shape_request
 
 _STAGES = {
     "Verifying model files": "load",
@@ -82,6 +82,9 @@ class _StageProxy:
 
 class MLXBackend(Backend):
     name = "mlx"
+    families = ("yue2",)
+    frame_rate = FRAME_RATE
+    sample_rate = SAMPLE_RATE
 
     def __init__(self, config, emit):
         super().__init__(config, emit)
@@ -239,6 +242,7 @@ class MLXBackend(Backend):
         start = time.perf_counter()
         plan = pipe.plan(request=request, cancelled=cancelled)
         semantic = pipe.generate_semantic(plan, sampling=semantic_sampling, cancelled=cancelled)
+        self.checkpoint(semantic.tokens, plan.abc, getattr(plan, "abc_ids", None), request.to_dict())
         audio, latents, render_timing = self._render(pipe, semantic, request.seed, cancel)
         timing = {"abc": plan.timing, "semantic": semantic.timing, **render_timing,
                   "load": dict(pipe.load_timing), "e2e_seconds": time.perf_counter() - start}

@@ -21,8 +21,9 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from .backend_base import Backend
-from .common import FRAME_RATE, SEMANTIC_MAX_TOKENS, Cancelled, read_audio, shape_request, tmpdir
+from ..backend_base import Backend
+from ..common import Cancelled, read_audio, tmpdir
+from .prompt import FRAME_RATE, SAMPLE_RATE, SEMANTIC_MAX_TOKENS, shape_request
 
 _AR = re.compile(r"^\[AR\] (Score|Semantic) (\d+)/(\d+)")
 _AR_END = re.compile(r"^\[AR\] (Score|Semantic) song \d+: end token at step (\d+)")
@@ -36,6 +37,9 @@ _VAE_DONE = re.compile(r"^\[VAE\] Tiled decode done")
 
 class Yue2CppBackend(Backend):
     name = "yue2cpp"
+    families = ("yue2",)
+    frame_rate = FRAME_RATE
+    sample_rate = SAMPLE_RATE
 
     def __init__(self, config, emit):
         super().__init__(config, emit)
@@ -197,7 +201,9 @@ class Yue2CppBackend(Backend):
         t0 = time.perf_counter()
         try:
             self._run_synth(request, work, cancel, {})
-            return self._collect(work, request, t0)
+            result = self._collect(work, request, t0)
+            self.checkpoint(result["codes"], result.get("abc"), None, request)
+            return result
         finally:
             shutil.rmtree(work, ignore_errors=True)
 

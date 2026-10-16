@@ -7,10 +7,10 @@ from pathlib import Path
 
 py, root = sys.argv[1], Path(sys.argv[2])
 cfg = json.loads(sys.argv[3]) if len(sys.argv) > 3 else {
-    "backend": "mlx", "engine_dir": "/Users/juraj/tmp/yue2/mlx-Yue"}
+    "backend": "mlx", "family": "yue2", "engine_dir": os.environ["STUDIO_MLX_ENGINE_DIR"]}
 here = Path(__file__).resolve().parents[1]
 env = {**os.environ, "PYTHONPATH": str(here), "MLX_ENABLE_TF32": "0", "PYTHONUNBUFFERED": "1"}
-proc = subprocess.Popen([py, "-m", "yue2_sidecar"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+proc = subprocess.Popen([py, "-m", "studio_engine"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                         stderr=open(root / "sidecar.log", "w"), text=True, env=env, bufsize=1)
 n = 0
 def call(cmd, **kw):
@@ -42,7 +42,7 @@ gen = call("generate", job="g1", output_dir=str(root / "gen"), title="E2E test",
            lyrics="[Verse]\nSunlight on the river\nWe are walking slow\n[Chorus]\nSing it now, sing it loud\nLet the morning glow\n",
            mode="off", seed=4242, precision="8bit", steps=8, max_seconds=25)
 res = wait("g1"); print("GENERATE", round(time.time() - t, 1), "s", json.dumps({k: res[k] for k in ("audio_seconds", "truncated")}))
-print("  timing", json.dumps({k: v for k, v in res["timing"].items() if k != "load"}, default=str)[:600])
+print("  timing", json.dumps({k: v for k, v in res["engine_timing"].items() if k != "load"}, default=str)[:600])
 t = time.time()
 call("extend", job="e1", source_dir=str(root / "gen"), output_dir=str(root / "ext"),
      style="upbeat indie pop, female vocal, acoustic guitar, bright",
@@ -50,7 +50,7 @@ call("extend", job="e1", source_dir=str(root / "gen"), output_dir=str(root / "ex
      mode="off", section_start=max(0.0, res["audio_seconds"] - 10.0), section_end=None, add_seconds=15,
      seed=4243, precision="8bit", steps=8, crossfade=2.0)
 ext = wait("e1"); print("EXTEND", round(time.time() - t, 1), "s", json.dumps({k: ext[k] for k in ("audio_seconds", "truncated", "seam", "section")}))
-print("  timing", json.dumps({k: v for k, v in ext["timing"].items() if k != "load"}, default=str)[:600])
+print("  timing", json.dumps({k: v for k, v in ext["engine_timing"].items() if k != "load"}, default=str)[:600])
 print(call("stats", path=str(root / "gen/audio.flac")))
 print(call("stats", path=str(root / "ext/audio.flac")))
 call("shutdown")

@@ -1,7 +1,7 @@
-"""YuE2 Studio sidecar: JSON-lines over stdio.
+"""Localhost Recording Studio engine sidecar: JSON-lines over stdio.
 
 Requests (one JSON object per line on stdin):
-  {"id": "r1", "cmd": "configure", "backend": "mlx", ...backend config}
+  {"id": "r1", "cmd": "configure", "backend": "mlx", "family": "yue2", ...backend config}
   {"id": "r2", "cmd": "generate", "job": "j1", "output_dir": "...", ...params}
   {"id": "r3", "cmd": "cancel", "job": "j1"}
 Responses: {"id": "r1", "ok": true, "result": {...}} | {"id": "r1", "ok": false, "error": "..."}
@@ -19,7 +19,6 @@ from __future__ import annotations
 import json
 import os
 import platform
-import shutil
 import sys
 import threading
 import time
@@ -63,16 +62,17 @@ class Server:
     def _make_backend(self, cfg):
         name = cfg.get("backend") or default_backend()
         emit = self._emit_proxy
-        if name == "mlx":
-            from .backend_mlx import MLXBackend
-            return MLXBackend(cfg, emit)
-        if name == "yue2cpp":
-            from .backend_yue2cpp import Yue2CppBackend
-            return Yue2CppBackend(cfg, emit)
-        if name == "torch":
-            from .backend_torch import TorchBackend
-            return TorchBackend(cfg, emit)
-        raise ValueError(f"Unknown backend {name!r}")
+        family = cfg.get("family") or "yue2"
+        backends = {
+            ("yue2", "mlx"): ("yue2.mlx", "MLXBackend"),
+            ("yue2", "yue2cpp"): ("yue2.cpp", "Yue2CppBackend"),
+            ("yue2", "torch"): ("yue2.torch_stub", "TorchBackend"),
+        }
+        if (family, name) not in backends:
+            raise ValueError(f"No backend {name!r} for the model family {family!r}")
+        module, cls = backends[(family, name)]
+        import importlib
+        return getattr(importlib.import_module(f".{module}", __package__), cls)(cfg, emit)
 
     def _emit_proxy(self, **fields):
         job = self._job[0] if self._job else None
@@ -169,11 +169,9 @@ class Server:
                 result = work(backend, msg, cancel)
                 emit("job_done", result=result)
             except Cancelled:
-                _cleanup_partial(msg.get("output_dir"))
                 emit("job_failed", error="Cancelled", cancelled=True)
             except BaseException as error:  # noqa: BLE001
                 traceback.print_exc(file=sys.stderr)
-                _cleanup_partial(msg.get("output_dir"))
                 emit("job_failed", error=f"{type(error).__name__}: {error}", cancelled=cancel.is_set())
             finally:
                 self._job = None
@@ -193,86 +191,84 @@ class Server:
         return self._start_job(msg, _job_extend)
 
 
-def _cleanup_partial(output_dir):
-    if output_dir and Path(output_dir).is_dir() and not (Path(output_dir) / "result.json").exists():
-        shutil.rmtree(output_dir, ignore_errors=True)
-
-
 def _params(msg):
     return {k: v for k, v in msg.items() if k not in ("id", "cmd")}
 
 
-def _studio(backend, kind, msg, **extra):
-    return {"kind": kind, "backend": backend.name, "title": msg.get("title") or None,
-            "params": {k: v for k, v in _params(msg).items() if k not in ("output_dir",)}, **extra}
-
-
-def _extra_npy(result):
-    plan = result.get("plan")
-    if plan is not None and getattr(plan, "abc_ids", None):
-        return {"abc_tokens.npy": __import__("numpy").asarray(plan.abc_ids, dtype="int32")}
+def _extra_npy(abc_ids):
+    if abc_ids:
+        return {"abc_tokens.npy": __import__("numpy").asarray(abc_ids, dtype="int32")}
     return None
 
 
+def _save(backend, out, result, **kw):
+    return common.save_song(out, audio=result["audio"], sample_rate=backend.sample_rate, codes=result["codes"],
+                            abc=result.get("abc"), request=result["request"], config=result["config"],
+                            timing=result["timing"], truncated=result["truncated"], **kw)
+
+
 def _job_generate(backend, msg, cancel):
-    out = common.fresh_dir(msg["output_dir"])
-    result = backend.generate(msg, out, cancel)
+    out = common.prepare_dir(msg["output_dir"])
+    backend.work_dir = out / "work"
+    checkpoint = out / "work" / "tokens.csv"
+    if msg.get("resume") and checkpoint.is_file():
+        # The token stream was complete when the job stopped: render it instead of sampling again.
+        source = common.load_source(out / "work")
+        if source["abc"] is None and (out / "work" / "score.abc").is_file():
+            source["abc"] = (out / "work" / "score.abc").read_text(encoding="utf-8")
+        result = backend.rerender(source, msg, out, cancel)
+        result["timing"]["resumed_from"] = "tokens"
+        abc_ids = source.get("abc_ids")
+    else:
+        result = backend.generate(msg, out, cancel)
+        plan = result.get("plan")
+        abc_ids = getattr(plan, "abc_ids", None) if plan is not None else None
     backend.progress("post", "Saving")
-    return common.save_song(out, audio=result["audio"], codes=result["codes"], abc=result.get("abc"),
-                            request=result["request"], config=result["config"], timing=result["timing"],
-                            truncated=result["truncated"], latents=result.get("latents"),
-                            studio=_studio(backend, "generate", msg), extra_npy=_extra_npy(result))
+    return _save(backend, out, result, extra_npy=_extra_npy(abc_ids))
 
 
 def _job_rerender(backend, msg, cancel):
     source = common.load_source(msg["source_dir"])
-    out = common.fresh_dir(msg["output_dir"])
+    out = common.prepare_dir(msg["output_dir"])
+    backend.work_dir = out / "work"
     result = backend.rerender(source, msg, out, cancel)
     backend.progress("post", "Saving")
-    extra = None
-    if source.get("abc_ids"):
-        extra = {"abc_tokens.npy": __import__("numpy").asarray(source["abc_ids"], dtype="int32")}
-    return common.save_song(out, audio=result["audio"], codes=result["codes"], abc=result.get("abc"),
-                            request=result["request"], config=result["config"], timing=result["timing"],
-                            truncated=result["truncated"], latents=result.get("latents"),
-                            studio=_studio(backend, "rerender", msg, source=str(source["dir"])),
-                            extra_npy=extra)
+    return _save(backend, out, result, extra_npy=_extra_npy(source.get("abc_ids")))
 
 
 def _job_extend(backend, msg, cancel):
     import numpy as np
+    fr = backend.frame_rate
     if msg.get("source_audio"):
         codes = backend.tokenize_audio(msg["source_audio"], cancel)
         source = {"dir": Path(msg["source_audio"]).parent, "codes": np.asarray(codes), "request": {},
-                  "abc": None, "abc_ids": None, "studio": {}, "audio_path": Path(msg["source_audio"])}
+                  "abc": None, "abc_ids": None, "meta": {}, "audio_path": Path(msg["source_audio"])}
     else:
         source = common.load_source(msg["source_dir"])
     n = len(source["codes"])
-    a, b = common.section_frames(n, msg.get("section_start", max(0.0, n / 25 - 30)), msg.get("section_end"))
-    out = common.fresh_dir(msg["output_dir"])
+    a, b = common.section_frames(n, msg.get("section_start", max(0.0, n / fr - 30)), msg.get("section_end"), fr)
+    out = common.prepare_dir(msg["output_dir"])
+    backend.work_dir = out / "work"
     result = backend.continue_song(source, a, b, msg, cancel)
     backend.progress("post", "Splicing")
     render = result["audio"]
+    samples_per_frame = backend.sample_rate // fr
     if a == 0 or source.get("audio_path") is None:
         final, seam = render, {"seam_sample": 0, "crossfade_samples": 0, "used": "render"}
     else:
-        original = common.read_audio(source["audio_path"])
-        final, seam = common.splice(original, render, a, float(msg.get("crossfade", 2.0)))
+        original = common.read_audio(source["audio_path"], backend.sample_rate)
+        final, seam = common.splice(original, render, a * samples_per_frame, backend.sample_rate,
+                                    float(msg.get("crossfade", 2.0)))
         seam["used"] = "splice"
     timeline = np.concatenate([np.asarray(source["codes"][:a], dtype=np.int64),
                                np.asarray(result["codes"], dtype=np.int64)])
-    extra_npy = {"render_semantic.npy": np.asarray(result["codes"], dtype=np.int32)}
-    if source.get("abc_ids") and result.get("abc") == source.get("abc"):
-        extra_npy["abc_tokens.npy"] = np.asarray(source["abc_ids"], dtype=np.int32)
-    section = {"start_frame": a, "end_frame": b, "start_seconds": a / 25, "end_seconds": b / 25,
+    abc_ids = source.get("abc_ids") if result.get("abc") == source.get("abc") else None
+    section = {"start_frame": a, "end_frame": b, "start_seconds": a / fr, "end_seconds": b / fr,
                "source_frames": n, "new_frames": result.get("new_frames"),
                "add_seconds": msg.get("add_seconds")}
-    saved = common.save_song(
-        out, audio=final, codes=timeline, abc=result.get("abc"), request=result["request"],
-        config=result["config"], timing=result["timing"], truncated=result["truncated"],
-        latents=None, extra_audio={"render.flac": render} if seam["used"] == "splice" else None,
-        extra_npy=extra_npy,
-        studio=_studio(backend, "extend", msg, source=str(source["dir"]), section=section, seam=seam))
+    saved = _save(backend, out, {**result, "audio": final, "codes": timeline},
+                  extra_audio={"render.flac": render} if seam["used"] == "splice" else None,
+                  extra_npy=_extra_npy(abc_ids))
     saved["seam"] = seam
     saved["section"] = section
     return saved

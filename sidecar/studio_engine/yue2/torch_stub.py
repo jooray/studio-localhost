@@ -7,7 +7,7 @@ codes appended to the prefix exactly as in backend_mlx._continue.
 """
 from __future__ import annotations
 
-from .backend_base import Backend
+from ..backend_base import Backend
 
 
 class TorchBackend(Backend):
