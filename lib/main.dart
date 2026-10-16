@@ -25,6 +25,7 @@ import 'state/nav.dart';
 import 'state/take.dart';
 import 'ui/app.dart';
 import 'ui/snapshot.dart';
+import 'ui/ui_test.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,6 +48,7 @@ Future<void> main() async {
   final envelopes = Envelopes(settings);
   if (demo.isNotEmpty) await Demo.live(demo, library, queue, envelopes);
   final take = TakeState(studio, library, queue, player, envelopes);
+  final form = GenerateForm(studio, queue);
   // A finished job's audio changed: drop any stale plot so it is recomputed.
   library.addListener(() {
     for (final s in library.songs) {
@@ -64,7 +66,7 @@ Future<void> main() async {
       ChangeNotifierProvider.value(value: nav),
       ChangeNotifierProvider.value(value: envelopes),
       ChangeNotifierProvider.value(value: take),
-      ChangeNotifierProvider(create: (_) => GenerateForm(studio, queue)),
+      ChangeNotifierProvider.value(value: form),
       ChangeNotifierProvider(create: (_) => ExtendForm(studio, queue, library)),
       ChangeNotifierProvider(create: (_) => LibraryView(studio, library, queue, player)),
     ],
@@ -93,5 +95,6 @@ Future<void> main() async {
     };
     unawaited(Snapshot.run());
   }
+  if (UiTest.active) unawaited(UiTest(env['STUDIO_UITEST']!, library, form).run());
   if ((env['STUDIO_SELFTEST'] ?? '').isNotEmpty) unawaited(runSelfTest(env['STUDIO_SELFTEST']!, studio, queue, library));
 }

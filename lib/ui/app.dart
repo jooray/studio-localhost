@@ -60,7 +60,9 @@ class _StudioAppState extends State<StudioApp> {
       scaffoldMessengerKey: _messenger,
       theme: buildTheme(),
       themeMode: ThemeMode.dark,
-      builder: Snapshot.active ? (context, child) => SnapshotFrame(child: child!) : null,
+      builder: Snapshot.active
+          ? (context, child) => SnapshotFrame(child: child!)
+          : (context, child) => RepaintBoundary(key: Snapshot.key, child: child),
       home: const _Root(),
     );
   }
