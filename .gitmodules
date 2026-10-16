@@ -1,0 +1,3 @@
+[submodule "android/app/src/main/cpp/yue2.cpp"]
+	path = android/app/src/main/cpp/yue2.cpp
+	url = https://github.com/ServeurpersoCom/yue2.cpp

@@ -1,0 +1,112 @@
+diff --git a/src/backend.h b/src/backend.h
+index a9c4404..c1b6243 100644
+--- a/src/backend.h
++++ b/src/backend.h
+@@ -6,6 +6,7 @@
+ // qwen3-lm.h, nar.h and vae.h.
+ 
+ #include "ggml-backend.h"
++#include "hooks.h"
+ 
+ #include <cstdio>
+ #include <cstdlib>
+@@ -26,6 +27,9 @@ static int         g_backend_refs  = 0;
+ // Used for GGML CPU thread count: GEMM shares SIMD units across hyperthreads,
+ // so one thread per physical core is optimal.
+ static int backend_cpu_n_threads(void) {
++    if (g_yue2_n_threads > 0) {
++        return g_yue2_n_threads;
++    }
+     int n = (int) std::thread::hardware_concurrency() / 2;
+     return n > 0 ? n : 1;
+ }
+diff --git a/src/generate.h b/src/generate.h
+index 120b9e1..419bc37 100644
+--- a/src/generate.h
++++ b/src/generate.h
+@@ -12,6 +12,7 @@
+ // holds for the whole loop.
+ #pragma once
+ 
++#include "hooks.h"
+ #include "qwen3-lm.h"
+ #include "sampling.h"
+ #include "timer.h"
+@@ -165,6 +166,10 @@ static bool yue2_generate(Qwen3LM *                             lm,
+             }
+             pending = pending || owed[i] != 0;
+         }
++        if (g_yue2_hooks.ar_step) {
++            g_yue2_hooks.ar_step(g_yue2_hooks.user, phase == YUE2_PHASE_ABC ? 0 : 1, step, s.max_tokens,
++                                 &(*out)[0].tokens);
++        }
+         if (!pending) {
+             break;
+         }
+@@ -179,6 +184,9 @@ static bool yue2_generate(Qwen3LM *                             lm,
+         }
+     }
+ 
++    if (g_yue2_hooks.ar_step) {
++        g_yue2_hooks.ar_step(g_yue2_hooks.user, phase == YUE2_PHASE_ABC ? 0 : 1, -1, s.max_tokens, &(*out)[0].tokens);
++    }
+     size_t total = 0;
+     for (int i = 0; i < B; i++) {
+         const Yue2Generation & g = (*out)[i];
+diff --git a/src/hooks.h b/src/hooks.h
+new file mode 100644
+index 0000000..2ab1fd7
+--- /dev/null
++++ b/src/hooks.h
+@@ -0,0 +1,23 @@
++#pragma once
++// hooks.h: optional progress hooks and thread override (yue2-android patch)
++//
++// Inline globals, one instance per process across every translation unit.
++// All hooks are optional; a null pointer keeps upstream behaviour.
++
++#include <vector>
++
++struct Yue2Hooks {
++    // every AR decode step and once more with step = -1 when the stage ends;
++    // phase 0 = score (BPE ids), 1 = semantic (codec ids with the offset)
++    void (*ar_step)(void * user, int phase, int step, int max_tokens, const std::vector<int> * tokens) = nullptr;
++    // after every flow matching step of a chunk
++    void (*nar_step)(void * user, int step, int steps) = nullptr;
++    // after every VAE tile
++    void (*vae_tile)(void * user, int tile, int tiles) = nullptr;
++    void * user = nullptr;
++};
++
++inline Yue2Hooks g_yue2_hooks;
++
++// CPU thread count, 0 = upstream heuristic
++inline int g_yue2_n_threads = 0;
+diff --git a/src/nar.h b/src/nar.h
+index 2064af4..9d74180 100644
+--- a/src/nar.h
++++ b/src/nar.h
+@@ -564,6 +564,9 @@ static bool nar_solve(Yue2NAR *            n,
+         snprintf(name, sizeof(name), "nar_step%d_xt", step);
+         debug_dump_2d(dbg, name, state, T_lat, n->latent_dim);
+         fprintf(stderr, "[NAR] Step %d/%d, %.0f ms\n", step + 1, steps, step_timer.ms());
++        if (g_yue2_hooks.nar_step) {
++            g_yue2_hooks.nar_step(g_yue2_hooks.user, step + 1, steps);
++        }
+     }
+     debug_dump_2d(dbg, "nar_x0", state, T_lat, n->latent_dim);
+ 
+diff --git a/src/vae.h b/src/vae.h
+index 2f57edf..5a13dd3 100644
+--- a/src/vae.h
++++ b/src/vae.h
+@@ -521,6 +521,9 @@ static int vae_ggml_decode_tiled(VAEGGML *     m,
+         ggml_backend_tensor_get(m->graph_output, audio_out + out_start, crop * sizeof(float), core_len * sizeof(float));
+         ggml_backend_tensor_get(m->graph_output, audio_out + max_T_audio + out_start, (tile_T + crop) * sizeof(float),
+                                 core_len * sizeof(float));
++        if (g_yue2_hooks.vae_tile) {
++            g_yue2_hooks.vae_tile(g_yue2_hooks.user, i + 1, num_tiles);
++        }
+     }
+ 
+     // Compact ch1 from offset max_T_audio to offset total
