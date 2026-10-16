@@ -98,7 +98,15 @@ class _RecordSheet extends StatelessWidget {
                           text: (v) => v,
                           onSelect: (v) => f.update(() => f.mode = v),
                         ),
-                      _SeedRow(f),
+                      if (f.reuseSeed != null)
+              ChoiceRow<bool>(
+                label: 'Source seed',
+                values: const [false, true],
+                selected: f.sameSeed,
+                text: (v) => v ? 'same' : 'new',
+                onSelect: (v) => f.update(() => f.sameSeed = v),
+              ),
+            if (!f.sameSeed) _SeedRow(f),
                       _TitleRow(f),
                       if ((features?.abcScore ?? false) && planning && f.effectiveMode != 'off') _ScoreRow(f),
                     ],

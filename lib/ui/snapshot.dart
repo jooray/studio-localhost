@@ -116,6 +116,7 @@ class SnapshotScreen extends StatelessWidget {
             'catalogue' => const CatalogueScreen(),
             'sheet' => _SheetOpener(key: ValueKey(shot!.file)),
             'song' => SongScreen(idOf(14)),
+            'rename' => SongScreen(idOf(14), startRename: true, key: ValueKey(shot!.file)),
             'extend' => ExtendScreen(sourceId: idOf(14)),
             'setup' => const SetupScreen(),
             'settings' => const SettingsScreen(),

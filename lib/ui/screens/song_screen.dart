@@ -17,15 +17,20 @@ import '../routes.dart';
 import '../theme.dart';
 import '../widgets/polar_plot.dart';
 import '../widgets/sleeve.dart';
+import '../widgets/song_actions.dart';
+import '../widgets/title_editor.dart';
 import 'record_sheet.dart';
 import 'studio_screen.dart' show shortError;
 
 /// One catalogue entry: the plot large, its number and code, playback, actions and the
 /// transmission data (format, length, seed, steps, model and licence in one quiet line).
 class SongScreen extends StatelessWidget {
-  const SongScreen(this.songId, {super.key});
+  const SongScreen(this.songId, {super.key, this.startRename = false});
 
   final String songId;
+
+  /// Open with the title already in edit (captures).
+  final bool startRename;
 
   @override
   Widget build(BuildContext context) {
@@ -35,12 +40,12 @@ class SongScreen extends StatelessWidget {
       return const SleevePage(title: 'Entry', child: Padding(padding: EdgeInsets.all(24), child: Etched('This entry is gone.', size: 12)));
     }
     return SleevePage(
-      title: song.title,
+      title: Catalogue.format(v.library.number(song)),
       child: LayoutBuilder(builder: (context, c) {
         final wide = c.maxWidth >= 820;
         final u = SleeveScale.of(context);
         final plot = _SongPlot(song);
-        final details = _Details(song);
+        final details = _Details(song, startRename: startRename);
         if (wide) {
           return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Expanded(flex: 10, child: Padding(padding: const EdgeInsets.all(32), child: Center(child: AspectRatio(aspectRatio: 1, child: plot)))),
@@ -79,7 +84,7 @@ class _SongPlot extends StatelessWidget {
       live: song.status == SongStatus.running,
       onSeek: song.hasAudio
           ? (f) async {
-              if (!mine) await pl.play(song.audioPath!, title: song.title);
+              if (!mine) await pl.play(song.audioPath!, title: context.read<LibraryView>().library.fileTitle(song));
               final dd = pl.duration;
               if (dd > Duration.zero) await pl.seek(dd * f);
             }
@@ -89,12 +94,21 @@ class _SongPlot extends StatelessWidget {
   }
 }
 
-class _Details extends StatelessWidget {
-  const _Details(this.song);
+class _Details extends StatefulWidget {
+  const _Details(this.song, {this.startRename = false});
   final Song song;
+  final bool startRename;
+
+  @override
+  State<_Details> createState() => _DetailsState();
+}
+
+class _DetailsState extends State<_Details> {
+  final _title = GlobalKey<TitleEditorState>();
 
   @override
   Widget build(BuildContext context) {
+    final song = widget.song;
     final v = context.read<LibraryView>();
     final u = SleeveScale.of(context);
     final n = v.library.number(song);
@@ -103,9 +117,19 @@ class _Details extends StatelessWidget {
     final audio = song.audioPath;
     final format = audio == null ? '–' : '${audio.split('.').last.toUpperCase()} · ${(v.studio.model?.limits.sampleRate ?? 48000) ~/ 1000} kHz stereo';
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Text(Catalogue.format(n), style: SleeveType.display(u, color: song.status == SongStatus.running ? Sleeve.red : Sleeve.ink)),
-      const SizedBox(height: 18),
-      SizedBox(width: 260 * u, child: CodeStripView(song.codeSeed, height: 14)),
+      // The title leads, set large in Geist; tap it to rename. The number sits beside the code.
+      TitleEditor(
+        song,
+        key: _title,
+        startEditing: widget.startRename,
+        style: SleeveType.display(u).copyWith(fontSize: 44 * u + 4, height: 1.1, letterSpacing: -0.5),
+      ),
+      const SizedBox(height: 14),
+      Row(children: [
+        Text(Catalogue.format(n), style: SleeveType.value(u, size: 16, color: song.status == SongStatus.running ? Sleeve.red : Sleeve.ink)),
+        const SizedBox(width: 16),
+        SizedBox(width: 200 * u, child: CodeStripView(song.codeSeed, height: 12)),
+      ]),
       const SizedBox(height: 22),
       const Rule(),
       _PlayLine(song),
@@ -130,7 +154,7 @@ class _Details extends StatelessWidget {
         const Rule(color: Sleeve.ruleFaint),
       ],
       const SizedBox(height: 14),
-      _Actions(song),
+      _Actions(song, onRename: () => _title.currentState?.edit()),
       const SizedBox(height: 26),
       Etched('Transmission data', size: 12, color: Sleeve.inkMute),
       const SizedBox(height: 6),
@@ -200,7 +224,7 @@ class _PlayLine extends StatelessWidget {
           child: LayoutBuilder(builder: (context, c) {
             Future<void> seek(double x) async {
               if (!song.hasAudio) return;
-              if (!mine) await pl.play(song.audioPath!, title: song.title);
+              if (!mine) await pl.play(song.audioPath!, title: context.read<LibraryView>().library.fileTitle(song));
               final d = pl.duration;
               if (d > Duration.zero) await pl.seek(d * (x / c.maxWidth).clamp(0.0, 1.0));
             }
@@ -231,14 +255,15 @@ class _PlayLine extends StatelessWidget {
 }
 
 class _Actions extends StatelessWidget {
-  const _Actions(this.song);
+  const _Actions(this.song, {required this.onRename});
   final Song song;
+  final VoidCallback onRename;
 
   @override
   Widget build(BuildContext context) {
     final v = context.read<LibraryView>();
     final u = SleeveScale.of(context);
-    Widget act(Glyph g, String label, VoidCallback? onTap, {bool danger = false}) => SizedBox(
+    Widget act(Glyph g, String label, VoidCallback? onTap) => SizedBox(
           height: 48,
           child: Cell(
             shrink: true,
@@ -246,20 +271,22 @@ class _Actions extends StatelessWidget {
             semanticLabel: label,
             padding: EdgeInsets.symmetric(horizontal: 14 * u),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              GlyphIcon(g, size: 18, color: danger ? Sleeve.red : Sleeve.ink),
+              GlyphIcon(g, size: 18, color: Sleeve.ink),
               const SizedBox(width: 10),
               Text(label.toUpperCase(), style: SleeveType.etched(u, size: 12, color: Sleeve.ink)),
             ]),
           ),
         );
     return Wrap(spacing: 8, runSpacing: 8, children: [
+      act(Glyph.rename, 'Rename', onRename),
       if (song.hasAudio) act(Platform.isAndroid ? Glyph.share : Glyph.share, Platform.isAndroid ? 'Share' : 'Export', () => _export(context, v, song)),
       if (v.canExtend(song)) act(Glyph.extend, 'Extend', () => openExtend(context, song)),
+      if (song.style.isNotEmpty || song.lyrics.isNotEmpty) act(Glyph.reuse, 'Reuse', () => reuseSong(context, song)),
       if (v.canRerender(song)) act(Glyph.rerender, 'Re-render', () => _rerender(context, v, song)),
       if (song.resumable) act(Glyph.rerender, 'Resume', () => v.resume(song)),
       if (song.active) act(Glyph.close, 'Stop', () => v.cancel(song)),
       if (Platform.isMacOS || Platform.isLinux) act(Glyph.folder, 'Folder', () => AppPaths.reveal(song.audioPath ?? song.dir)),
-      if (!song.active) act(Glyph.delete, song.readOnly ? 'Remove' : 'Delete', () => _delete(context, v, song), danger: true),
+      if (!song.active) act(Glyph.delete, song.readOnly ? 'Remove' : 'Delete', () => _delete(context, v, song)),
     ]);
   }
 }
@@ -373,7 +400,13 @@ Future<void> _delete(BuildContext context, LibraryView v, Song song) async {
             Row(children: [
               Expanded(child: Cell(onTap: () => Navigator.pop(ctx, false), child: const Etched('Keep', size: 13, color: Sleeve.ink))),
               const SizedBox(width: 8),
-              Expanded(child: Cell(active: true, onTap: () => Navigator.pop(ctx, true), child: Etched(song.readOnly ? 'Remove' : 'Delete', size: 13, color: Sleeve.red))),
+              Expanded(
+                child: Cell(
+                  selected: true,
+                  onTap: () => Navigator.pop(ctx, true),
+                  child: Etched('${song.readOnly ? 'Remove' : 'Delete'} $n — confirm', size: 12, color: Sleeve.ink, maxLines: 2, align: TextAlign.center),
+                ),
+              ),
             ]),
           ]),
         ),

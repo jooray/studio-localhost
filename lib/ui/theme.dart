@@ -113,8 +113,8 @@ ThemeData buildTheme() {
     dividerTheme: const DividerThemeData(color: Sleeve.ruleFaint, thickness: Sleeve.hair, space: Sleeve.hair),
     textSelectionTheme: const TextSelectionThemeData(
       cursorColor: Sleeve.ink,
-      selectionColor: Color(0x66C8553D),
-      selectionHandleColor: Sleeve.red,
+      selectionColor: Color(0x55F2F2F0),
+      selectionHandleColor: Sleeve.ink,
     ),
     scrollbarTheme: ScrollbarThemeData(
       thickness: const WidgetStatePropertyAll(2),

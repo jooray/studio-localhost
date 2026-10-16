@@ -67,6 +67,7 @@ class Cell extends StatefulWidget {
     this.semanticLabel,
     this.alignment = Alignment.center,
     this.shrink = false,
+    this.onLongPress,
   });
 
   final Widget child;
@@ -84,6 +85,9 @@ class Cell extends StatefulWidget {
 
   /// Size to the content instead of filling the width (cells in a Wrap).
   final bool shrink;
+
+  /// Long-press (touch) or right-click (pointer): a secondary action such as rename.
+  final VoidCallback? onLongPress;
 
   @override
   State<Cell> createState() => _CellState();
@@ -155,6 +159,13 @@ class _CellState extends State<Cell> {
             HapticFeedback.selectionClick();
             widget.onTap!();
           },
+          onLongPress: widget.onLongPress == null
+              ? null
+              : () {
+                  HapticFeedback.mediumImpact();
+                  widget.onLongPress!();
+                },
+          onSecondaryTap: widget.onLongPress,
           child: body,
         ),
       );
@@ -187,7 +198,7 @@ class Etched extends StatelessWidget {
   }
 }
 
-enum Glyph { catalogue, menu, play, pause, close, back, plus, minus, check, dice, up, share, extend, rerender, delete, folder, copy }
+enum Glyph { rename, reuse, catalogue, menu, play, pause, close, back, plus, minus, check, dice, up, share, extend, rerender, delete, folder, copy }
 
 /// Authored icons: one 1.25 px stroke, square caps, drawn on a 24 unit grid.
 class GlyphIcon extends StatelessWidget {
@@ -229,6 +240,19 @@ class _GlyphPainter extends CustomPainter {
           canvas.drawLine(Offset(12 + 4.5 * math.sin(a), 12 - 4.5 * math.cos(a)),
               Offset(12 + (k.isEven ? 9 : 7) * math.sin(a), 12 - (k.isEven ? 9 : 7) * math.cos(a)), p);
         }
+      case Glyph.rename:
+        // A pen over a baseline.
+        l(5, 19, 19, 19);
+        l(7, 15, 15, 7);
+        l(15, 7, 17, 9);
+        l(17, 9, 9, 17);
+        l(9, 17, 6.5, 17.5);
+      case Glyph.reuse:
+        // A sheet with an arrow coming back into it: start again from these words.
+        canvas.drawRect(const Rect.fromLTWH(9, 9, 11, 11), p);
+        canvas.drawArc(const Rect.fromLTWH(4, 4, 10, 10), math.pi, math.pi * 1.2, false, p);
+        l(4, 9, 4, 13);
+        l(4, 13, 7.5, 11);
       case Glyph.menu:
         l(4, 7, 20, 7);
         l(4, 12, 20, 12);
@@ -353,6 +377,7 @@ class SleeveField extends StatelessWidget {
     this.keyboardType,
     this.semanticLabel,
     this.onChanged,
+    this.onSubmitted,
   });
 
   final TextEditingController controller;
@@ -365,6 +390,7 @@ class SleeveField extends StatelessWidget {
   final TextInputType? keyboardType;
   final String? semanticLabel;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -383,6 +409,7 @@ class SleeveField extends StatelessWidget {
           cursorWidth: 1.5,
           cursorHeight: style.fontSize! * 1.05,
           onChanged: onChanged,
+          onSubmitted: onSubmitted,
           decoration: InputDecoration(
             isCollapsed: true,
             border: InputBorder.none,
@@ -406,7 +433,7 @@ class ErrorLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final u = SleeveScale.of(context);
     return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-      Container(width: 10 * u, height: 10 * u, color: Sleeve.red),
+      HollowMark(size: 10 * u),
       SizedBox(width: 12 * u),
       Expanded(
         child: Tooltip(
@@ -456,9 +483,22 @@ void showLine(BuildContext context, String text, {bool error = false}) {
   m?.hideCurrentSnackBar();
   m?.showSnackBar(SnackBar(
     content: Row(children: [
-      if (error) ...[Container(width: 8, height: 8, color: Sleeve.red), const SizedBox(width: 10)],
+      if (error) ...[const HollowMark(size: 8), const SizedBox(width: 10)],
       Expanded(child: Text(text.toUpperCase())),
     ]),
     duration: Duration(seconds: error ? 6 : 3),
   ));
+}
+
+/// A small hollow square: marks a stopped or failed entry without spending the one red.
+class HollowMark extends StatelessWidget {
+  const HollowMark({super.key, this.size = 7});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(border: Border.all(color: Sleeve.inkMute, width: Sleeve.hair)),
+      );
 }

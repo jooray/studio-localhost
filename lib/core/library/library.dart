@@ -23,6 +23,27 @@ class Library extends ChangeNotifier {
   /// The song's catalogue number (LRS-###).
   int? number(Song s) => catalogue.of(s.dir) ?? s.ownNumber;
 
+  /// The title shown for a song: the user's (song.json, or the overlay for imported songs),
+  /// else one derived from its lyrics or style, else its catalogue number.
+  String titleOf(Song s) {
+    if (s.readOnly) {
+      final o = catalogue.titleOf(s.dir);
+      if (o != null) return o;
+    } else if (s.userTitle && s.title.trim().isNotEmpty) {
+      return s.title.trim();
+    }
+    return s.derivedTitle ?? Catalogue.format(number(s));
+  }
+
+  bool hasUserTitle(Song s) => s.readOnly ? catalogue.titleOf(s.dir) != null : s.userTitle;
+
+  /// "Title (LRS-015)" for file names and share sheets.
+  String fileTitle(Song s) {
+    final t = titleOf(s);
+    final n = Catalogue.format(number(s));
+    return t == n ? n : '$t ($n)';
+  }
+
   Song? byNumber(int n) {
     for (final s in songs) {
       if (number(s) == n) return s;
@@ -171,8 +192,17 @@ class Library extends ChangeNotifier {
     await refresh();
   }
 
+  /// Name a song. An empty title goes back to the derived one. Imported songs keep their
+  /// names in the app's own catalogue, never in the source folder.
   Future<void> rename(Song s, String title) async {
-    if (s.readOnly) return;
-    await patch(s, {'title': title});
+    final t = title.trim();
+    if (s.readOnly) {
+      catalogue.setTitle(s.dir, t.isEmpty ? null : t);
+      notifyListeners();
+      return;
+    }
+    await patch(s, t.isEmpty
+        ? {'title': s.derivedTitle ?? Catalogue.format(number(s)), 'title_user': false}
+        : {'title': t, 'title_user': true});
   }
 }

@@ -19,7 +19,8 @@ class Exporter {
   /// Formats offered for this platform.
   List<String> get formats => Platform.isAndroid ? const ['mp3', 'wav'] : const ['mp3', 'flac', 'wav'];
 
-  String suggestedName(Song s, String fmt) => '${s.title.replaceAll(RegExp(r'[/\\:*?"<>|]'), '_')}.$fmt';
+  /// "Run Towards The Sun (LRS-015).flac"
+  String suggestedName(Song s, String fmt) => '${studio.library.fileTitle(s).replaceAll(RegExp(r'[/\\:*?"<>|]'), '_')}.$fmt';
 
   /// Desktop: write the song as [fmt] to [destination].
   Future<void> exportTo(Song s, String fmt, String destination) async {
@@ -51,14 +52,14 @@ class Exporter {
   Future<void> share(Song s, {String fmt = 'mp3'}) async {
     var path = s.audioPath!;
     if (p.extension(path) != '.$fmt') {
-      final out = p.join(s.dir, 'work', 'share.$fmt');
+      final out = p.join(s.dir, 'work', suggestedName(s, fmt));
       await AndroidBridge.call('convertAudio', {'src': path, 'dst': out});
       path = out;
     }
     await AndroidBridge.call('share', {
       'path': path,
       'mime': fmt == 'wav' ? 'audio/wav' : (fmt == 'flac' ? 'audio/flac' : 'audio/mpeg'),
-      'title': s.title,
+      'title': studio.library.fileTitle(s),
     });
   }
 }

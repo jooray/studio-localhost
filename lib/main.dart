@@ -97,7 +97,11 @@ Future<void> main() async {
     final original = form.lyrics.text;
     Snapshot.prepare = (shot) async {
       studioScrollToEnd.value = shot.screen == 'mainlong';
-      form.lyrics.text = shot.screen == 'mainlong' ? Demo.forty() : original;
+      if (shot.screen != 'reuse') form.lyrics.text = shot.screen == 'mainlong' ? Demo.forty() : original;
+      if (shot.screen == 'reuse') {
+        final src = library.byNumber(14);
+        if (src != null) form.reuse(src, label: 'From LRS-014');
+      }
       if (demo.isNotEmpty && const ['idle', 'playing', 'error'].contains(shot.screen)) {
         await Demo.state(shot.screen, demo, library, queue, player);
       }

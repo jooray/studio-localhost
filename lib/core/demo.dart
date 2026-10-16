@@ -66,7 +66,9 @@ class Demo {
         'format': Song.format,
         'version': Song.formatVersion,
         'id': 'demo-lrs-$n',
-        'title': e.value.replaceAll('_', ' '),
+        // One entry carries a user title; the others show titles derived from their words.
+        'title': n == 14 ? 'Run Towards The Sun' : e.value.replaceAll('_', ' '),
+        'title_user': n == 14,
         'created': day.add(Duration(hours: n)).toIso8601String(),
         'kind': 'generate',
         'status': running ? 'running' : 'done',

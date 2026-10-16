@@ -12,6 +12,7 @@ import '../routes.dart';
 import '../theme.dart';
 import '../widgets/polar_plot.dart';
 import '../widgets/sleeve.dart';
+import '../widgets/song_actions.dart';
 
 /// Every song as a numbered entry: its plot, number, style in one line, length and code strip.
 class CatalogueScreen extends StatefulWidget {
@@ -97,7 +98,8 @@ class CatalogueRow extends StatelessWidget {
           frame: running,
           active: running,
           onTap: () => openSong(context, song),
-          semanticLabel: '${Catalogue.format(n)}, ${song.style}',
+          onLongPress: () => songMenu(context, song),
+          semanticLabel: '${v.titleOf(song)}, ${Catalogue.format(n)}',
           padding: EdgeInsets.only(left: 18 * u, right: 4 * u),
           child: Row(children: [
             SizedBox.square(
@@ -107,22 +109,33 @@ class CatalogueRow extends StatelessWidget {
             SizedBox(width: 18 * u),
             Expanded(
               child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Text(Catalogue.format(n), style: SleeveType.value(u, size: 15, color: running ? Sleeve.red : Sleeve.ink)),
-                  SizedBox(width: 14 * u),
-                  SizedBox(width: 56, child: CodeStripView(song.codeSeed, height: 7)),
-                ]),
-                const SizedBox(height: 8),
+                // Title leads in Geist; number and code follow in mono; the style is the quiet line.
                 Text(
-                  song.style.isEmpty ? song.title : song.style,
+                  v.titleOf(song),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: SleeveType.body(u, color: Sleeve.inkSoft).copyWith(fontSize: 15, height: 1.2),
+                  style: SleeveType.body(u).copyWith(fontSize: 17, height: 1.2, fontWeight: FontWeight.w400),
                 ),
+                const SizedBox(height: 6),
+                Row(children: [
+                  Text(Catalogue.format(n), style: SleeveType.value(u, size: 12, color: running ? Sleeve.red : Sleeve.inkSoft)),
+                  SizedBox(width: 12 * u),
+                  SizedBox(width: 48, child: CodeStripView(song.codeSeed, height: 6)),
+                  SizedBox(width: 12 * u),
+                  Expanded(
+                    child: Text(
+                      song.style,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: SleeveType.body(u, color: Sleeve.inkMute).copyWith(fontSize: 13, height: 1.2),
+                    ),
+                  ),
+                ]),
               ]),
             ),
             SizedBox(width: 10 * u),
-            Text(status, style: SleeveType.etched(u, size: 12, color: song.status == SongStatus.failed ? Sleeve.red : Sleeve.inkSoft)),
+            if (song.status == SongStatus.failed) ...[const HollowMark(), const SizedBox(width: 6)],
+            Text(status, style: SleeveType.etched(u, size: 12, color: song.status == SongStatus.failed ? Sleeve.inkMute : Sleeve.inkSoft)),
             GlyphButton(
               playing ? Glyph.pause : Glyph.play,
               tooltip: playing ? 'Pause' : 'Play',

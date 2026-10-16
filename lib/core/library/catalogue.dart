@@ -12,6 +12,9 @@ class Catalogue {
   final String file;
   int _next = 1;
   final Map<String, int> _byDir = {};
+
+  /// User titles of read-only (imported) songs, whose folders are never written.
+  final Map<String, String> _titles = {};
   bool _loaded = false;
 
   static const prefix = 'LRS';
@@ -23,7 +26,26 @@ class Catalogue {
 
   int get next => _next;
 
-  int? of(String dir) => _byDir[dir];
+  int? of(String dir) {
+    _load();
+    return _byDir[dir];
+  }
+
+  /// The overlay title of a read-only song, if the user gave one.
+  String? titleOf(String dir) {
+    _load();
+    return _titles[dir];
+  }
+
+  void setTitle(String dir, String? title) {
+    _load();
+    if (title == null || title.trim().isEmpty) {
+      _titles.remove(dir);
+    } else {
+      _titles[dir] = title.trim();
+    }
+    save();
+  }
 
   void _load() {
     if (_loaded) return;
@@ -33,6 +55,12 @@ class Catalogue {
       if (!f.existsSync()) return;
       final j = jsonDecode(f.readAsStringSync()) as Map<String, dynamic>;
       _next = (j['next'] as num?)?.toInt() ?? 1;
+      final t = j['titles'];
+      if (t is Map) {
+        for (final e in t.entries) {
+          if (e.value is String) _titles[e.key as String] = e.value as String;
+        }
+      }
       final m = j['entries'];
       if (m is Map) {
         for (final e in m.entries) {
@@ -78,7 +106,7 @@ class Catalogue {
       final f = File(file);
       f.parent.createSync(recursive: true);
       final tmp = File('$file.tmp');
-      tmp.writeAsStringSync(const JsonEncoder.withIndent('  ').convert({'next': _next, 'entries': _byDir}));
+      tmp.writeAsStringSync(const JsonEncoder.withIndent('  ').convert({'next': _next, 'entries': _byDir, 'titles': _titles}));
       tmp.renameSync(f.path);
     } catch (_) {}
   }
@@ -124,3 +152,27 @@ int seedFromText(String s) {
   }
   return h;
 }
+
+/// A title for a song nobody named: the first sung line (tags and filler skipped, about 32
+/// characters), or for instrumentals the first words of the style. Null when neither exists.
+String? deriveTitle({required String lyrics, required String style, bool instrumental = false}) {
+  if (!instrumental) {
+    for (final raw in lyrics.split('\n')) {
+      final line = raw.replaceAll(RegExp(r'\[[^\]]*\]'), '').replaceAll(RegExp(r'\([^)]*\)'), '').trim();
+      if (!RegExp(r'[A-Za-z\u00C0-\u024F\u0400-\u04FF]{2}').hasMatch(line)) continue;
+      return _cap(_clip(line.replaceAll(RegExp(r'[,;:.!?…-]+$'), ''), 32));
+    }
+  }
+  final words = style.split(RegExp(r'[\s,;/]+')).where((w) => w.isNotEmpty).take(3).toList();
+  if (words.isEmpty) return null;
+  return _cap(_clip(words.join(' '), 32));
+}
+
+String _clip(String s, int max) {
+  if (s.length <= max) return s;
+  final cut = s.substring(0, max);
+  final sp = cut.lastIndexOf(' ');
+  return '${(sp > max ~/ 2 ? cut.substring(0, sp) : cut).trimRight()}…';
+}
+
+String _cap(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);

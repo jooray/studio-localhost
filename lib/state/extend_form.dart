@@ -85,8 +85,9 @@ class ExtendForm extends ChangeNotifier {
     final s = source!;
     final sd = int.tryParse(seed.text) ?? randomSeed();
     final atEnd = (sectionEnd - s.seconds).abs() < 0.05;
-    await queue.submit('${s.title.replaceAll(RegExp(r' \((extended|re-render)\)$'), '')} (extended)', {
+    await queue.submit('${library.titleOf(s).replaceAll(RegExp(r' \((extended|re-render)\)$'), '')} (extended)', {
       'kind': 'extend',
+      'title_user': library.hasUserTitle(s),
       'parent': s.id,
       'source_dir': s.dir,
       'params': {

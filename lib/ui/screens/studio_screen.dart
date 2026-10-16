@@ -401,12 +401,14 @@ class StatusLine extends StatelessWidget {
         spans.add(TextSpan(text: words[k]));
       }
     }
-    final text = Text.rich(
-      TextSpan(style: style, children: spans),
-      maxLines: 1,
-      overflow: TextOverflow.fade,
-      softWrap: false,
-    );
+    final lead = t.lead;
+    // A title leads (and gives way first); the number and time always stay readable.
+    final Widget text = lead == null
+        ? Text.rich(TextSpan(style: style, children: spans), maxLines: 1, overflow: TextOverflow.fade, softWrap: false)
+        : Row(children: [
+            Flexible(child: Text(lead.toUpperCase(), style: style, maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false)),
+            Text.rich(TextSpan(style: style, children: [gap, const TextSpan(text: '·'), gap, ...spans]), maxLines: 1, softWrap: false),
+          ]);
     Widget? action;
     VoidCallback? onTap;
     switch (mode) {
@@ -416,7 +418,7 @@ class StatusLine extends StatelessWidget {
         final playing = mode == TakeMode.playing && player.playing;
         onTap = () {
           final a = s?.audioPath;
-          if (a != null) player.toggle(a, title: Catalogue.format(t.number(s)));
+          if (a != null) player.toggle(a, title: t.library.fileTitle(s!));
         };
         action = GlyphIcon(playing ? Glyph.pause : Glyph.play, size: 22 * u);
       case TakeMode.failed:
@@ -431,7 +433,7 @@ class StatusLine extends StatelessWidget {
       frame: false,
       onTap: onTap,
       minHeight: 0,
-      semanticLabel: parts.join(', '),
+      semanticLabel: [?lead, ...parts].join(', '),
       padding: EdgeInsets.only(left: inset * u, right: 12 * u),
       alignment: Alignment.centerLeft,
       child: Row(
@@ -466,7 +468,15 @@ class StyleBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const _FieldLabel('STYLE'),
+        Row(children: [
+          const _FieldLabel('STYLE'),
+          const Spacer(),
+          // Quiet provenance of a reused prompt, until the user records or edits.
+          Selector<GenerateForm, String?>(
+            selector: (_, f) => f.fromLabel,
+            builder: (_, from, _) => from == null ? const SizedBox.shrink() : Etched(from, size: 11, color: Sleeve.inkMute),
+          ),
+        ]),
         SizedBox(height: 7 * u),
         SleeveField(
           controller: f.style,
@@ -745,7 +755,7 @@ class QueueList extends StatelessWidget {
         SizedBox(height: 6 * u),
         const Rule(),
         for (final s in items) ...[
-          _QueueRow(s, number: lib.number(s), live: q.live[s.id], key: ValueKey(s.id)),
+          _QueueRow(s, number: lib.number(s), title: lib.titleOf(s), live: q.live[s.id], key: ValueKey(s.id)),
           const Rule(color: Sleeve.ruleFaint),
         ],
       ],
@@ -754,7 +764,9 @@ class QueueList extends StatelessWidget {
 }
 
 class _QueueRow extends StatelessWidget {
-  const _QueueRow(this.song, {super.key, required this.number, required this.live});
+  const _QueueRow(this.song, {super.key, required this.number, required this.title, required this.live});
+
+  final String title;
 
   final Song song;
   final int? number;
@@ -809,7 +821,7 @@ class _QueueRow extends StatelessWidget {
             child: Tooltip(
               message: song.error ?? '',
               child: Text(
-                failed && song.error != null ? shortError(song.error!) : (song.style.isEmpty ? song.title : song.style),
+                failed && song.error != null ? shortError(song.error!) : title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: SleeveType.body(u, color: failed ? Sleeve.inkSoft : Sleeve.ink).copyWith(fontSize: 15 * u + 2),
@@ -819,11 +831,10 @@ class _QueueRow extends StatelessWidget {
           SizedBox(width: 12 * u),
           SizedBox(
             width: 70 * u + 12,
-            child: Text(
-              state,
-              textAlign: TextAlign.right,
-              style: SleeveType.etched(u, size: 12, color: failed ? Sleeve.red : Sleeve.inkSoft),
-            ),
+            child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+            if (failed) ...[const HollowMark(), const SizedBox(width: 6)],
+            Flexible(child: Text(state, textAlign: TextAlign.right, style: SleeveType.etched(u, size: 12, color: failed ? Sleeve.inkMute : Sleeve.inkSoft))),
+          ]),
           ),
           act,
         ],

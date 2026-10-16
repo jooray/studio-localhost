@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 
 import '../core/jobs/job_queue.dart';
+import '../core/library/catalogue.dart';
+import '../core/library/song.dart';
 import '../core/paths.dart';
 import '../core/studio.dart';
 import 'lyric_controller.dart';
@@ -23,9 +25,67 @@ class GenerateForm extends ChangeNotifier {
     seed.text = '${f['seed'] ?? randomSeed()}';
     abc.text = f['abc'] as String? ?? '';
     showAbc = abc.text.isNotEmpty;
+    _baseline();
     for (final c in [style, lyrics]) {
-      c.addListener(notifyListeners);
+      c.addListener(_edited);
     }
+  }
+
+  /// "From LRS-010": the song this draft was reused from, until the user records or edits.
+  String? fromLabel;
+
+  /// The source song's seed, for the "same seed" choice in the record sheet.
+  int? reuseSeed;
+  bool sameSeed = false;
+
+  String _baseStyle = '', _baseLyrics = '';
+
+  void _baseline() {
+    _baseStyle = style.text;
+    _baseLyrics = lyrics.text;
+  }
+
+  void _edited() {
+    if (fromLabel != null && (style.text != _baseStyle || lyrics.text != _baseLyrics)) {
+      fromLabel = null;
+      reuseSeed = null;
+      sameSeed = false;
+    }
+    notifyListeners();
+  }
+
+  /// The words differ from what was last recorded or reused (an unsaved draft).
+  bool get hasDraft => style.text != _baseStyle || lyrics.text != _baseLyrics;
+
+  /// Start a new song from another one's prompt: words and settings, a new seed, no title.
+  void reuse(Song s, {required String label}) {
+    final p = s.params;
+    style.text = s.style;
+    lyrics.text = s.lyrics;
+    title.clear();
+    if (stepChoices.contains(s.steps)) steps = s.steps!;
+    if (s.precision != null && precisions.contains(s.precision)) precision = s.precision!;
+    final max = p['max_seconds'];
+    if (max is num && max < maxLength) {
+      limitLength = true;
+      maxSeconds = max.toDouble();
+    } else {
+      limitLength = false;
+    }
+    if (modes.contains(s.mode)) mode = s.mode;
+    instrumental = s.instrumental;
+    // A score only travels when the user wrote it (it is in the request, not planned by the model).
+    final userAbc = p['abc'];
+    abc.text = userAbc is String ? userAbc : '';
+    showAbc = abc.text.trim().isNotEmpty;
+    final m = s.modelId;
+    if (m != null && studio.registry.byId(m) != null && studio.model?.id != m) studio.selectModel(m);
+    seed.text = '${randomSeed()}';
+    reuseSeed = s.seed;
+    sameSeed = false;
+    fromLabel = label;
+    _baseline();
+    notifyListeners();
   }
 
   final Studio studio;
@@ -72,10 +132,12 @@ class GenerateForm extends ChangeNotifier {
 
   /// Queue the song (or [variants] songs with consecutive seeds). Returns a short message.
   Future<String> submit() async {
-    final s0 = int.tryParse(seed.text.trim()) ?? randomSeed();
-    final base = title.text.trim().isNotEmpty
+    final s0 = (sameSeed ? reuseSeed : null) ?? int.tryParse(seed.text.trim()) ?? randomSeed();
+    // A title typed before recording is the user's; otherwise one is derived from the words.
+    final named = title.text.trim().isNotEmpty;
+    final base = named
         ? title.text.trim()
-        : (style.text.split(',').first.trim().isEmpty ? 'Song' : style.text.split(',').first.trim());
+        : (deriveTitle(lyrics: lyrics.text, style: style.text, instrumental: instrumental) ?? 'Untitled');
     studio.settings.lastForm = {
       'title': title.text,
       'style': style.text,
@@ -95,6 +157,7 @@ class GenerateForm extends ChangeNotifier {
       final s = s0 + i;
       await queue.submit(n > 1 ? '$base #${i + 1}' : base, {
         'kind': 'generate',
+        'title_user': named,
         'params': {
           'style': style.text.trim(),
           'lyrics': lyrics.text,
@@ -108,7 +171,14 @@ class GenerateForm extends ChangeNotifier {
         },
       });
     }
-    update(() => seed.text = '${s0 + n}');
+    update(() {
+      seed.text = '${s0 + n}';
+      title.clear();
+      fromLabel = null;
+      reuseSeed = null;
+      sameSeed = false;
+      _baseline();
+    });
     return n > 1 ? 'Queued $n variants' : 'Queued "$base"';
   }
 

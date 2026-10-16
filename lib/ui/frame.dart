@@ -10,6 +10,7 @@ import '../state/take.dart';
 import 'routes.dart';
 import 'theme.dart';
 import 'widgets/sleeve.dart';
+import 'widgets/song_actions.dart';
 
 double indexColumnWidth(double width) => width >= 840 ? 300 : 232;
 
@@ -112,10 +113,11 @@ class IndexColumn extends StatelessWidget {
                     )
                   : ListView.builder(
                       itemCount: songs.length,
-                      itemExtent: 60,
+                      itemExtent: 64,
                       itemBuilder: (_, i) => _IndexEntry(
                         songs[i],
                         number: lib.number(songs[i]),
+                        title: lib.titleOf(songs[i]),
                         selected: studio ? songs[i].id == take.current?.id : songs[i].id == nav.selectedSongId,
                       ),
                     ),
@@ -128,10 +130,11 @@ class IndexColumn extends StatelessWidget {
 }
 
 class _IndexEntry extends StatelessWidget {
-  const _IndexEntry(this.song, {required this.number, required this.selected});
+  const _IndexEntry(this.song, {required this.number, required this.title, required this.selected});
 
   final Song song;
   final int? number;
+  final String title;
   final bool selected;
 
   @override
@@ -139,35 +142,41 @@ class _IndexEntry extends StatelessWidget {
     final running = song.status == SongStatus.running;
     final queued = song.status == SongStatus.queued;
     final failed = song.status == SongStatus.failed || song.status == SongStatus.interrupted || song.status == SongStatus.cancelled;
-    final color = running ? Sleeve.red : (queued || failed ? Sleeve.inkMute : Sleeve.ink);
+    final numColor = running ? Sleeve.red : Sleeve.inkMute;
+    final named = title != Catalogue.format(number);
     return Cell(
       active: running,
       selected: selected,
       frame: running || selected,
       onTap: () => openSong(context, song),
-      semanticLabel: Catalogue.format(number),
+      onLongPress: () => songMenu(context, song),
+      semanticLabel: '$title, ${Catalogue.format(number)}',
       minHeight: 0,
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 92,
-            child: Text(Catalogue.format(number), style: SleeveType.value(1, size: 15, color: color)),
-          ),
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: SizedBox(width: 64, child: CodeStripView(song.codeSeed, height: 7)),
-            ),
-          ),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        // The title leads (Geist); the number, code and length follow in mono.
+        Text(
+          named ? title : Catalogue.format(number),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: named
+              ? SleeveType.body(1, color: queued || failed ? Sleeve.inkMute : Sleeve.ink).copyWith(fontSize: 15, height: 1.2)
+              : SleeveType.value(1, size: 14, color: running ? Sleeve.red : Sleeve.ink),
+        ),
+        const SizedBox(height: 5),
+        Row(children: [
+          if (named) ...[Text(Catalogue.format(number), style: SleeveType.value(1, size: 11, color: numColor)), const SizedBox(width: 10)],
+          SizedBox(width: 48, child: CodeStripView(song.codeSeed, height: 5)),
+          const Spacer(),
+          if (failed) ...[const HollowMark(), const SizedBox(width: 6)],
           Text(switch (song.status) {
             SongStatus.done => formatDuration(song.seconds),
             SongStatus.running => 'REC',
             SongStatus.queued => 'QUEUED',
             _ => 'STOPPED',
-          }, style: SleeveType.etched(1, size: 12, color: running ? Sleeve.red : Sleeve.inkMute)),
-        ],
-      ),
+          }, style: SleeveType.etched(1, size: 11, color: running ? Sleeve.red : Sleeve.inkMute)),
+        ]),
+      ]),
     );
   }
 }

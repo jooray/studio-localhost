@@ -101,7 +101,6 @@ class TakeState extends ChangeNotifier {
         return [word, n];
       case TakeMode.playing:
         return [
-          player.playing ? 'PLAYING' : 'PAUSED',
           Catalogue.format(number(s)),
           '${formatDuration(player.position.inMilliseconds / 1000)} / ${formatDuration(_duration(s))}',
         ];
@@ -114,6 +113,15 @@ class TakeState extends ChangeNotifier {
       case TakeMode.empty:
         return ['NO RECORDINGS YET'];
     }
+  }
+
+  /// The title that leads the status line when a finished song is shown (idle, playing).
+  String? get lead {
+    final s = current;
+    if (s == null) return null;
+    if (mode != TakeMode.idle && mode != TakeMode.playing) return null;
+    final t = library.titleOf(s);
+    return t == Catalogue.format(number(s)) ? null : t;
   }
 
   double _duration(Song? s) {

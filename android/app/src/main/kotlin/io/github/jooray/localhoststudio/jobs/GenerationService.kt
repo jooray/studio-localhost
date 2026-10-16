@@ -79,7 +79,10 @@ class GenerationService : Service() {
     private fun runOne(dir: File) {
         val song = SongStore.read(dir) ?: return
         val id = song.optString("id", dir.name)
-        val title = song.optString("title", dir.name)
+        // "Run Towards The Sun · LRS-015": the user's (or derived) title, then the catalogue number.
+        val number = song.optInt("catalogue", 0)
+        val baseTitle = song.optString("title", dir.name)
+        val title = if (number > 0) "$baseTitle · LRS-%03d".format(number) else baseTitle
         val previous = song.optJSONObject("timing")
         val previousTotal = previous?.optDouble("total_seconds", 0.0) ?: 0.0
         val stageSeconds = mutableMapOf<String, Double>()

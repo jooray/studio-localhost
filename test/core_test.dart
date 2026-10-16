@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:studio_localhost/core/app_info.dart';
 import 'package:studio_localhost/core/engine/engines.dart';
 import 'package:studio_localhost/core/engine/hardware.dart';
+import 'package:studio_localhost/core/library/catalogue.dart';
 import 'package:studio_localhost/core/library/song.dart';
 import 'package:studio_localhost/core/models/registry.dart';
 
@@ -72,5 +73,13 @@ void main() {
     expect(s.stoppedAtRequestedLength, isTrue);
     expect(s.truncationWarning, isFalse);
     dir.deleteSync(recursive: true);
+  });
+
+  test('derived titles: first sung line, else style words', () {
+    expect(deriveTitle(lyrics: '[Verse]\nNeon fades along the lane\n', style: 'jazz'), 'Neon fades along the lane');
+    expect(deriveTitle(lyrics: '[Intro]\n. . .\n', style: 'cinematic dark jazz, trombone'), 'Cinematic dark jazz');
+    expect(deriveTitle(lyrics: 'la la la', style: 'ambient drones', instrumental: true), 'Ambient drones');
+    expect(deriveTitle(lyrics: '', style: ''), isNull);
+    expect(deriveTitle(lyrics: 'A very long first line that keeps going on and on and on', style: '')!.length <= 33, isTrue);
   });
 }

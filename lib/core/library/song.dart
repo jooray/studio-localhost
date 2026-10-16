@@ -81,6 +81,12 @@ class Song {
   String? get precision => params['precision'] as String?;
   double get seconds => (meta['audio_seconds'] as num?)?.toDouble() ?? 0;
 
+  /// The title was given by the user (otherwise it is derived from lyrics or style).
+  bool get userTitle => meta['title_user'] == true;
+
+  /// The title derived from the lyrics or style, null when there is nothing to derive from.
+  String? get derivedTitle => deriveTitle(lyrics: lyrics, style: style, instrumental: instrumental);
+
   /// Catalogue number stored in song.json (own songs); the library's catalogue is authoritative.
   int? get ownNumber => (meta['catalogue'] as num?)?.toInt();
 

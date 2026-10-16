@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../core/export.dart';
 import '../core/jobs/job_queue.dart';
+import '../core/library/catalogue.dart';
 import '../core/library/library.dart';
 import '../core/library/song.dart';
 import '../core/player.dart';
@@ -24,7 +25,11 @@ class LibraryView extends ChangeNotifier {
   }
 
   List<Song> get songs => library.songs
-      .where((s) => filter.isEmpty || '${s.title} ${s.style}'.toLowerCase().contains(filter.toLowerCase()))
+      .where((s) =>
+          filter.isEmpty ||
+          '${library.titleOf(s)} ${Catalogue.format(library.number(s))} ${library.number(s) ?? ''} ${s.style}'
+              .toLowerCase()
+              .contains(filter.toLowerCase()))
       .toList();
 
   bool canExtend(Song s) => (studio.model?.features.extend ?? false) && s.status == SongStatus.done && s.hasTokens && s.hasAudio;
@@ -39,9 +44,10 @@ class LibraryView extends ChangeNotifier {
   }
 
   Future<void> rerender(Song s, {required int steps, required int seed}) => queue.submit(
-        '${s.title.replaceAll(RegExp(r' \((extended|re-render)\)$'), '')} (re-render)',
+        '${library.titleOf(s).replaceAll(RegExp(r' \((extended|re-render)\)$'), '')} (re-render)',
         {
           'kind': 'rerender',
+          'title_user': library.hasUserTitle(s),
           'parent': s.id,
           'source_dir': s.dir,
           'params': {
@@ -58,10 +64,11 @@ class LibraryView extends ChangeNotifier {
   }
 
   Future<void> rename(Song s, String title) => library.rename(s, title);
+  String titleOf(Song s) => library.titleOf(s);
   Future<void> resume(Song s) => queue.resume(s);
   Future<void> cancel(Song s) => queue.cancel(s);
   void toggle(Song s) {
     final a = s.audioPath;
-    if (a != null) player.toggle(a, title: s.title);
+    if (a != null) player.toggle(a, title: library.fileTitle(s));
   }
 }
