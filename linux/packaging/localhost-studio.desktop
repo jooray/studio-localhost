@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Localhost Recording Studio
+Comment=Make songs from a style and lyrics on your own hardware
+Exec=localhost-studio
+Icon=localhost-studio
+Terminal=false
+Categories=AudioVideo;Audio;Music;
+StartupWMClass=localhost-studio

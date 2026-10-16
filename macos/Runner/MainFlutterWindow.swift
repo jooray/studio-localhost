@@ -11,8 +11,8 @@ class MainFlutterWindow: NSWindow {
     let origin = NSPoint(x: screen.midX - size.width / 2, y: screen.midY - size.height / 2)
     self.setFrame(NSRect(origin: origin, size: size), display: true)
     self.minSize = NSSize(width: 1000, height: 680)
-    self.title = "YuE2 Studio"
-    self.setFrameAutosaveName("YuE2StudioMainWindow")
+    self.title = "Localhost Recording Studio"
+    self.setFrameAutosaveName("LocalhostStudioMainWindow")
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 

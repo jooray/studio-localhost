@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = YuE2 Studio
+PRODUCT_NAME = Localhost Recording Studio
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = io.github.jooray.yue2studio
+PRODUCT_BUNDLE_IDENTIFIER = io.github.jooray.localhoststudio
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 Juraj Bednar. YuE2 weights: CC BY-NC 4.0.
+PRODUCT_COPYRIGHT = Copyright © 2026 Juraj Bednár. MIT licence.

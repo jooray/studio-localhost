@@ -4,10 +4,10 @@ project(runner LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "yue2-studio")
+set(BINARY_NAME "localhost-studio")
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
-set(APPLICATION_ID "io.github.jooray.yue2studio")
+set(APPLICATION_ID "io.github.jooray.localhoststudio")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
@@ -127,7 +127,7 @@ if(NOT CMAKE_BUILD_TYPE MATCHES "Debug")
     COMPONENT Runtime)
 endif()
 
-# YuE2 Studio: window/launcher icon and .desktop entry inside the bundle.
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/yue2-studio.png"
-  "${CMAKE_CURRENT_SOURCE_DIR}/packaging/yue2-studio.desktop"
+# Localhost Recording Studio: window/launcher icon and .desktop entry inside the bundle.
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/localhost-studio.png"
+  "${CMAKE_CURRENT_SOURCE_DIR}/packaging/localhost-studio.desktop"
   DESTINATION "${INSTALL_BUNDLE_DATA_DIR}" COMPONENT Runtime)

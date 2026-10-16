@@ -47,6 +47,32 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
-# YuE2 Studio
+
+# Localhost Recording Studio
 /dist/
 __pycache__/
+.venv/
+**/.venv/
+*.egg-info/
+# local, machine-specific configuration (never committed)
+/local/
+*.local.json
+.env
+# signing material
+*.jks
+*.keystore
+keystore.properties
+key.properties
+signing.properties
+# model weights and generated audio
+*.gguf
+*.safetensors
+*.npy
+*.flac
+*.mp3
+*.wav
+/android-test/
+# native build intermediates
+**/.cxx/
+**/.gradle/
+/android/app/build/

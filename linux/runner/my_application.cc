@@ -45,20 +45,20 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "YuE2 Studio");
+    gtk_header_bar_set_title(header_bar, "Localhost Recording Studio");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
-    gtk_window_set_title(window, "YuE2 Studio");
+    gtk_window_set_title(window, "Localhost Recording Studio");
   }
 
   gtk_window_set_default_size(window, 1280, 820);
   {
-    // Window icon: <bundle>/data/yue2-studio.png next to the executable.
+    // Window icon: <bundle>/data/localhost-studio.png next to the executable.
     g_autofree gchar* exe = g_file_read_link("/proc/self/exe", nullptr);
     if (exe != nullptr) {
       g_autofree gchar* dir = g_path_get_dirname(exe);
-      g_autofree gchar* icon = g_build_filename(dir, "data", "yue2-studio.png", nullptr);
+      g_autofree gchar* icon = g_build_filename(dir, "data", "localhost-studio.png", nullptr);
       gtk_window_set_icon_from_file(window, icon, nullptr);
     }
   }
