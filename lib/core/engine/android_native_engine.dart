@@ -36,6 +36,7 @@ class AndroidNativeEngine extends Engine {
   @override
   Future<void> warmUp() async {
     try {
+      await AndroidBridge.call('recover');
       final s = await AndroidBridge.map('status');
       _running = s['running'] as String?;
       notifyListeners();
@@ -48,6 +49,7 @@ class AndroidNativeEngine extends Engine {
   @override
   Future<void> run(Song song, JobContext ctx) async {
     // song.json carries model.files ({role: path}); the service reads everything from there.
+    await AndroidBridge.call('requestNotifications');
     await AndroidBridge.call('enqueue', {'dir': song.dir});
   }
 
