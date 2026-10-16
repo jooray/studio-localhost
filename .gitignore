@@ -76,3 +76,11 @@ signing.properties
 **/.cxx/
 **/.gradle/
 /android/app/build/
+
+# Website: keep raw/source media out of git
+site/media/clips/
+site/media/*.flac
+site/media/*.wav
+site/media/character.png
+site/media/song-ready.json
+!site/media/run-song.mp3

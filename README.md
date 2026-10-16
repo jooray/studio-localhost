@@ -8,11 +8,21 @@ declares each model's files, licence, features and limits. The first model is
 [YuE2-3B](https://huggingface.co/m-a-p/YuE2-3B) by M-A-P (48 kHz stereo songs with vocals).
 
 What you can do: generate one or several variants, queue work and walk away, play and export,
-re-render with another seed or step count, and extend a song from any section (chained extends).
+re-render with another seed or step count, extend a song from any section (chained extends),
+reuse a song's prompt for a new take, and rename songs.
+
+Website, with a short ad and a song the app made: **https://jooray.github.io/studio-localhost/**
 
 ## Screenshots
 
-_Coming with the visual redesign._
+<p>
+  <img src="site/assets/img/desktop-idle.webp" alt="Studio on desktop: catalogue index, polar plot of the last song, style and lyrics" width="640">
+</p>
+<p>
+  <img src="site/assets/img/phone-idle.webp" alt="Studio on a phone" width="200">
+  <img src="site/assets/img/phone-playing.webp" alt="Playing a song on a phone" width="200">
+  <img src="site/assets/img/setup-phone.webp" alt="Model setup with licence on a phone" width="200">
+</p>
 
 ## Platforms and engines
 

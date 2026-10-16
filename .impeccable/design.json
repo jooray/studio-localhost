@@ -1,0 +1,494 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-16T10:15:02+00:00",
+  "title": "Design System: Localhost Recording Studio",
+  "source": {
+    "build": "0.4.3+7",
+    "commit": "ba82712",
+    "direction": "Catalogue Sleeve",
+    "seed": "3fa1913f",
+    "comp": ".impeccable/mocks/comp-3-screen.webp"
+  },
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Matte Ground",
+        "canonical": "#0A0A0B",
+        "oklch": "oklch(14.5% 0.002 286.1)",
+        "tonalRamp": [
+          "#0B0B0C",
+          "#252526",
+          "#424243",
+          "#616162",
+          "#828283",
+          "#A5A5A6",
+          "#C9C9CA",
+          "#EEEEF0"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Sleeve Ink",
+        "canonical": "#F2F2F0",
+        "oklch": "oklch(96.1% 0.003 106.4)",
+        "tonalRamp": [
+          "#0B0B0A",
+          "#252524",
+          "#424240",
+          "#616160",
+          "#828281",
+          "#A5A5A3",
+          "#C9C9C7",
+          "#EEEEEC"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Ink",
+        "canonical": "#BEBEBB",
+        "oklch": "oklch(80.1% 0.004 106.5)",
+        "tonalRamp": [
+          "#0B0B09",
+          "#252523",
+          "#424240",
+          "#61615F",
+          "#828280",
+          "#A5A5A2",
+          "#C9C9C6",
+          "#EFEFEB"
+        ]
+      },
+      "ink-mute": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#8E8E8B",
+        "oklch": "oklch(64.6% 0.004 106.5)",
+        "tonalRamp": [
+          "#0B0B09",
+          "#252523",
+          "#42423F",
+          "#61615F",
+          "#82827F",
+          "#A5A5A2",
+          "#C9C9C6",
+          "#EFEFEB"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule White",
+        "canonical": "#BDBDBA",
+        "oklch": "oklch(79.7% 0.004 106.5)",
+        "tonalRamp": [
+          "#0B0B09",
+          "#252523",
+          "#424240",
+          "#61615F",
+          "#828280",
+          "#A5A5A2",
+          "#C9C9C6",
+          "#EFEFEB"
+        ]
+      },
+      "rule-faint": {
+        "role": "neutral",
+        "displayName": "Faint Rule",
+        "canonical": "#3B3B3B",
+        "oklch": "oklch(35.2% 0.000 89.9)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ]
+      },
+      "grid": {
+        "role": "neutral",
+        "displayName": "Plot Grid",
+        "canonical": "#6B6B6B",
+        "oklch": "oklch(52.8% 0.000 89.9)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ]
+      },
+      "signal-red": {
+        "role": "primary",
+        "displayName": "Signal Red",
+        "canonical": "#C8553D",
+        "oklch": "oklch(59.3% 0.152 33.4)",
+        "tonalRamp": [
+          "#1D0200",
+          "#490900",
+          "#7A1701",
+          "#A6351E",
+          "#CD5941",
+          "#F57D63",
+          "#FFB4A3",
+          "#FFE9E4"
+        ]
+      },
+      "code-grey": {
+        "role": "tertiary",
+        "displayName": "Code Grey",
+        "canonical": "#7D7D7F",
+        "oklch": "oklch(59.0% 0.003 286.3)",
+        "tonalRamp": [
+          "#0B0B0C",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#A5A5A7",
+          "#C9C9CB",
+          "#EEEEF0"
+        ]
+      },
+      "code-blue": {
+        "role": "tertiary",
+        "displayName": "Code Blue",
+        "canonical": "#3F6E8C",
+        "oklch": "oklch(51.7% 0.070 238.2)",
+        "tonalRamp": [
+          "#000D17",
+          "#01283D",
+          "#164763",
+          "#386785",
+          "#5989A8",
+          "#7BACCC",
+          "#9FD0F2",
+          "#DFF2FF"
+        ]
+      },
+      "code-gold": {
+        "role": "tertiary",
+        "displayName": "Code Gold",
+        "canonical": "#D8A461",
+        "oklch": "oklch(75.3% 0.105 72.1)",
+        "tonalRamp": [
+          "#130900",
+          "#362000",
+          "#5C3A00",
+          "#855602",
+          "#A97733",
+          "#CE9A57",
+          "#F4BE7B",
+          "#FFEBD4"
+        ]
+      },
+      "code-red": {
+        "role": "tertiary",
+        "displayName": "Code Red",
+        "canonical": "#C8553D",
+        "oklch": "oklch(59.3% 0.152 33.4)",
+        "tonalRamp": [
+          "#1D0200",
+          "#490900",
+          "#7A1701",
+          "#A6351E",
+          "#CD5941",
+          "#F57D63",
+          "#FFB4A3",
+          "#FFE9E4"
+        ]
+      },
+      "code-white": {
+        "role": "tertiary",
+        "displayName": "Code White",
+        "canonical": "#F2F2F0",
+        "oklch": "oklch(96.1% 0.003 106.4)",
+        "tonalRamp": [
+          "#0B0B0A",
+          "#252524",
+          "#424240",
+          "#616160",
+          "#828281",
+          "#A5A5A3",
+          "#C9C9C7",
+          "#EEEEEC"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Catalogue number heading on the song page; the only display use.",
+        "scales": "size x u (comp unit); etched and value clamp to 11 px"
+      },
+      "status": {
+        "displayName": "Status",
+        "purpose": "The engraved status line between hairline rules; word spaces at 42% of a mono cell.",
+        "scales": "size x u (comp unit); etched and value clamp to 11 px"
+      },
+      "index": {
+        "displayName": "Index",
+        "purpose": "Short catalogue numerals in the phone index bar.",
+        "scales": "size x u (comp unit); etched and value clamp to 11 px"
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field names STYLE and LYRICS: mono caps at body size.",
+        "scales": "size x u (comp unit); etched and value clamp to 11 px"
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Words the user writes: style, lyrics, titles.",
+        "scales": "size x u (comp unit); etched and value clamp to 11 px"
+      },
+      "value": {
+        "displayName": "Value",
+        "purpose": "Catalogue numbers in lists, data values, seeds, paths, logs (12-16 px). Floors at 11 px.",
+        "scales": "size x u (comp unit); etched and value clamp to 11 px"
+      },
+      "etched": {
+        "displayName": "Etched",
+        "purpose": "Small engraved uppercase labels, cell text, tags, snackbars (11-13 px). Floors at 11 px.",
+        "scales": "size x u (comp unit); etched and value clamp to 11 px"
+      },
+      "etched-action": {
+        "displayName": "Etched Action",
+        "purpose": "Primary-action label (RECORD / QUEUE / setup). The only weight-500 use.",
+        "scales": "size x u (comp unit); etched and value clamp to 11 px"
+      }
+    },
+    "shadows": [],
+    "interaction": [
+      {
+        "name": "hover-fill",
+        "value": "rgba(255,255,255,0.05)",
+        "purpose": "Enabled cell under pointer."
+      },
+      {
+        "name": "press-fill",
+        "value": "rgba(255,255,255,0.10)",
+        "purpose": "Cell while pressed."
+      },
+      {
+        "name": "focus-frame",
+        "value": "2px solid #F2F2F0 (red #C8553D on the active cell)",
+        "purpose": "Keyboard focus, drawn inside the cell."
+      },
+      {
+        "name": "modal-barrier",
+        "value": "rgba(0,0,0,0.70)",
+        "purpose": "Behind the settings sheet."
+      },
+      {
+        "name": "selection",
+        "value": "rgba(200,85,61,0.40)",
+        "purpose": "Text selection; handle solid red."
+      },
+      {
+        "name": "haptic",
+        "value": "selectionClick",
+        "purpose": "Every cell tap."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The one curve: exponential ease-out for every step-in."
+      },
+      {
+        "name": "step",
+        "value": "260ms",
+        "purpose": "Page transitions (fade + 2.5% rise), index numeral swap (fade + 25% slide from right), code strip reveal (fade + grow from left)."
+      },
+      {
+        "name": "arc-glide",
+        "value": "900ms",
+        "purpose": "Progress arc easing between progress reports."
+      },
+      {
+        "name": "record-breath",
+        "value": "3200ms loop, scale ±1.2%",
+        "purpose": "Polar burst and arc scan head while recording."
+      },
+      {
+        "name": "reduce-motion",
+        "value": "duration 0; transitions return the child; breath stopped at rest",
+        "purpose": "Applied whenever the platform disables animations."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "<600px",
+        "purpose": "Comp authority; u = width/576 clamped 0.55-1.25."
+      },
+      {
+        "name": "index-column",
+        "value": "600px",
+        "purpose": "Catalogue index as 232px left column beside the page."
+      },
+      {
+        "name": "index-column-wide",
+        "value": "840px",
+        "purpose": "Index column widens to 300px."
+      },
+      {
+        "name": "two-column",
+        "value": "content width >= 760px (window >= 1060px)",
+        "purpose": "Plot | writing side by side over a shared status/Record band, 11:10."
+      }
+    ],
+    "scale": {
+      "compWidth": "576px",
+      "floor": "11px",
+      "phoneStudio": "0.55-1.25",
+      "secondaryPhone": "0.62-1.0",
+      "wideOneColumn": "contentW/640, 0.6-1.0",
+      "wideTwoColumn": "min(contentW/1240, h/860), 0.62-1.0",
+      "sheet": "0.7-1.0"
+    }
+  },
+  "components": [
+    {
+      "name": "Cell",
+      "kind": "button",
+      "refersTo": "cell",
+      "description": "The one control shape: hairline frame, square corners; frame colour is the state.",
+      "html": "<div class=\"ds-row\"><button class=\"ds-cell\">DONE</button><button class=\"ds-cell ds-cell-sel\">8 STEPS</button><button class=\"ds-cell ds-cell-act\">015</button></div>",
+      "css": ".ds-row{display:flex;gap:12px;background:#0A0A0B;padding:16px} .ds-cell{font-family: 'Geist Mono', GeistMono, ui-monospace, monospace;font-size:13px;font-weight:400;letter-spacing:.16em;text-transform:uppercase;color:#F2F2F0;background:transparent;border:1px solid #BDBDBA;border-radius:0;min-height:48px;padding:0 18px;cursor:pointer} .ds-cell:hover{background:rgba(255,255,255,.05)} .ds-cell:active{background:rgba(255,255,255,.10)} .ds-cell:focus-visible{outline:2px solid #F2F2F0;outline-offset:-2px} .ds-cell-sel{border-color:#F2F2F0} .ds-cell-act{border-color:#C8553D;color:#C8553D} .ds-cell-act:focus-visible{outline-color:#C8553D}"
+    },
+    {
+      "name": "Record Cell (armed)",
+      "kind": "button",
+      "refersTo": "record-cell",
+      "description": "Primary action; the red end block appears only when armed.",
+      "html": "<div class=\"ds-rec-wrap\"><button class=\"ds-rec\"><span>RECORD LRS-016</span><i></i></button><button class=\"ds-rec-set\">32 STEPS · 4:00</button></div>",
+      "css": ".ds-rec-wrap{display:flex;background:#0A0A0B;padding:16px;width:520px} .ds-rec{flex:1;display:flex;align-items:stretch;height:56px;padding:0;background:transparent;border:1px solid #BDBDBA;border-radius:0;color:#F2F2F0;cursor:pointer;font-family: 'Geist Mono', GeistMono, ui-monospace, monospace;font-size:15px;font-weight:500;letter-spacing:.16em} .ds-rec span{flex:1;display:flex;align-items:center;padding:0 8px 0 18px} .ds-rec i{width:30px;background:#C8553D} .ds-rec:hover{background:rgba(255,255,255,.05)} .ds-rec:focus-visible{outline:2px solid #F2F2F0;outline-offset:-2px} .ds-rec-set{flex:1;height:56px;background:transparent;border:1px solid #BDBDBA;border-left:none;border-radius:0;color:#BEBEBB;font-family: 'Geist Mono', GeistMono, ui-monospace, monospace;font-size:11px;letter-spacing:.16em;cursor:pointer} .ds-rec-set:hover{background:rgba(255,255,255,.05)}"
+    },
+    {
+      "name": "Status Line",
+      "kind": "custom",
+      "refersTo": "status-line",
+      "description": "Engraved take status between hairline rules, with a play/pause glyph.",
+      "html": "<div class=\"ds-status\"><span>RECORDING · LRS-015 · 2:14 / 4:00</span><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\"><rect x=\"7\" y=\"5\" width=\"3.5\" height=\"14\" fill=\"#F2F2F0\"/><rect x=\"13.5\" y=\"5\" width=\"3.5\" height=\"14\" fill=\"#F2F2F0\"/></svg></div>",
+      "css": ".ds-status{display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 12px 0 30px;background:#0A0A0B;border-top:1px solid #BDBDBA;border-bottom:1px solid #BDBDBA;color:#F2F2F0;font-family: 'Geist Mono', GeistMono, ui-monospace, monospace;font-weight:300;font-size:26.5px;line-height:1;letter-spacing:-.3px;word-spacing:-.3em;width:560px}"
+    },
+    {
+      "name": "Code Strip",
+      "kind": "custom",
+      "refersTo": "code-strip",
+      "description": "Five flush blocks derived from the song seed; colour as data.",
+      "html": "<div class=\"ds-code\"><i style=\"flex:2;background:#7D7D7F\"></i><i style=\"flex:2;background:#3F6E8C\"></i><i style=\"flex:2;background:#D8A461\"></i><i style=\"flex:2;background:#C8553D\"></i><i style=\"flex:4;background:#F2F2F0\"></i></div>",
+      "css": ".ds-code{display:flex;height:41px;width:480px;border:16px solid #0A0A0B} .ds-code i{display:block}"
+    },
+    {
+      "name": "Index Bar",
+      "kind": "nav",
+      "refersTo": "index-bar-cell",
+      "description": "Last four catalogue numerals in shared-rule cells; current framed ink, running framed red.",
+      "html": "<div class=\"ds-ix\"><a>012</a><a>013</a><a class=\"ds-ix-sel\">014</a><a class=\"ds-ix-act\">015</a></div>",
+      "css": ".ds-ix{display:flex;background:#0A0A0B;width:520px;padding:16px} .ds-ix a{flex:1;height:52px;display:flex;align-items:center;justify-content:center;border-top:1px solid #BDBDBA;border-bottom:1px solid #BDBDBA;border-right:1px solid #BDBDBA;color:#F2F2F0;font-family: 'Geist Mono', GeistMono, ui-monospace, monospace;font-weight:300;font-size:30px;cursor:pointer} .ds-ix a:hover{background:rgba(255,255,255,.05)} .ds-ix a:focus-visible{outline:2px solid #F2F2F0;outline-offset:-2px} .ds-ix-sel{border:1px solid #F2F2F0 !important} .ds-ix-act{border:1px solid #C8553D !important;color:#C8553D !important}"
+    },
+    {
+      "name": "Index Column Entry",
+      "kind": "nav",
+      "refersTo": "index-entry",
+      "description": "Wide-layout catalogue column row: number, code swatch, duration or tag.",
+      "html": "<div class=\"ds-col\"><div class=\"ds-ent ds-ent-act\"><b>LRS-015</b><span class=\"ds-sw\"></span><em>REC</em></div><div class=\"ds-ent\"><b>LRS-014</b><span class=\"ds-sw\"></span><em>4:00</em></div></div>",
+      "css": ".ds-col{width:300px;background:#0A0A0B;border-right:1px solid #BDBDBA} .ds-ent{display:flex;align-items:center;height:60px;padding:0 24px;border:1px solid transparent;color:#F2F2F0;cursor:pointer} .ds-ent:hover{background:rgba(255,255,255,.05)} .ds-ent b{width:92px;font-family: 'Geist Mono', GeistMono, ui-monospace, monospace;font-weight:400;font-size:15px;letter-spacing:.04em} .ds-sw{width:64px;height:7px;background:linear-gradient(90deg,#7D7D7F 0 20%,#3F6E8C 20% 40%,#D8A461 40% 60%,#C8553D 60% 80%,#F2F2F0 80%);margin-right:auto} .ds-ent em{font-style:normal;font-family: 'Geist Mono', GeistMono, ui-monospace, monospace;font-size:12px;letter-spacing:.16em;color:#8E8E8B} .ds-ent-act{border-color:#C8553D} .ds-ent-act b,.ds-ent-act em{color:#C8553D}"
+    },
+    {
+      "name": "Sleeve Field",
+      "kind": "input",
+      "refersTo": "",
+      "description": "Boxless input; surrounding hairlines are its frame.",
+      "html": "<div class=\"ds-field\"><label>STYLE</label><textarea rows=\"2\" placeholder=\"cinematic dark jazz, mournful trombone\"></textarea></div>",
+      "css": ".ds-field{background:#0A0A0B;padding:18px 32px;border-bottom:1px solid #BDBDBA;width:520px} .ds-field label{display:block;font-family: 'Geist Mono', GeistMono, ui-monospace, monospace;font-weight:300;font-size:24.5px;color:#F2F2F0;margin-bottom:7px} .ds-field textarea{width:100%;background:transparent;border:none;outline:none;resize:none;color:#F2F2F0;caret-color:#F2F2F0;font-family:Geist,sans-serif;font-weight:300;font-size:22.5px;line-height:26px;letter-spacing:-.15px} .ds-field textarea::placeholder{color:#8E8E8B} .ds-field textarea::selection{background:rgba(200,85,61,.4)}"
+    },
+    {
+      "name": "Choice Row (settings sheet)",
+      "kind": "chip",
+      "refersTo": "choice-cell",
+      "description": "Etched key column with frameless choices; the selected one gets an ink frame.",
+      "html": "<div class=\"ds-choice\"><span class=\"ds-k\">STEPS</span><button>8</button><button class=\"ds-on\">32</button><button>64</button></div>",
+      "css": ".ds-choice{display:flex;align-items:center;background:#0A0A0B;padding:10px 25px;border-bottom:1px solid #3B3B3B;width:520px} .ds-k{width:120px;font-family: 'Geist Mono', GeistMono, ui-monospace, monospace;font-size:12px;letter-spacing:.16em;color:#8E8E8B} .ds-choice button{width:82px;height:48px;background:transparent;border:1px solid transparent;border-radius:0;color:#8E8E8B;font-family: 'Geist Mono', GeistMono, ui-monospace, monospace;font-size:13px;letter-spacing:.16em;cursor:pointer} .ds-choice button:hover{background:rgba(255,255,255,.05)} .ds-choice button:focus-visible{outline:2px solid #F2F2F0;outline-offset:-2px} .ds-choice .ds-on{border-color:#F2F2F0;color:#F2F2F0}"
+    },
+    {
+      "name": "Error Line",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "In-world fault message with a red square mark and a way out.",
+      "html": "<div class=\"ds-err\"><i></i><span>ENGINE STOPPED</span><button>SETUP</button></div>",
+      "css": ".ds-err{display:flex;align-items:center;gap:12px;background:#0A0A0B;padding:12px 25px;width:520px;font-family: 'Geist Mono', GeistMono, ui-monospace, monospace;font-size:13px;letter-spacing:.16em;color:#F2F2F0} .ds-err i{width:10px;height:10px;background:#C8553D} .ds-err span{flex:1} .ds-err button{height:40px;padding:0 14px;background:transparent;border:1px solid #BDBDBA;border-radius:0;color:#F2F2F0;font:inherit;letter-spacing:inherit;cursor:pointer} .ds-err button:hover{background:rgba(255,255,255,.05)} .ds-err button:focus-visible{outline:2px solid #F2F2F0;outline-offset:-2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Catalogue Sleeve",
+    "overview": "The studio is a record catalogue printed on a matte black sleeve. Each song is a numbered entry (LRS-001 and on). Its face is a polar pulse plot of its own waveform, and it carries a five-block colour code derived from its seed. The interface is set like a post-punk catalogue back cover: white hairline rules divide the page into bands, engraved mono capitals name things, and a plain light grotesk carries the words people write. There are no cards, no chrome and no Material furniture. Every control is a hairline-framed cell, or a cell with its frame switched off.\n\nThe page is calm and flat, and the eye goes to two things. One is the plot, which shows the take as a white burst inside a radial hairline grid. The other is a single red mark: the entry being recorded now, or the armed end of the Record cell. Everything else stays white on black at three ink strengths. Density changes with window size, but the world doesn't. The phone follows the approved comp exactly, measured in comp pixels and scaled by one unit `u`. Wide windows set the same parts side by side, with the catalogue index as a left column.",
+    "keyCharacteristics": [
+      "Matte black ground, ink in three strengths, hairline rules at 1 px, square corners everywhere except the round plot.",
+      "Two faces only: Geist (light, for the words people write and display numerals) and Geist Mono (light to medium, for everything engraved, numbered or measured).",
+      "One red, reserved for what is live now.",
+      "Each song's colour code strip is the only place that uses colour as decoration, and it is data.",
+      "Motion is one grammar. Things step in with an exponential ease-out and nothing bounces. Reduce-motion makes everything static."
+    ],
+    "rules": [
+      {
+        "name": "The One Red Rule",
+        "body": "Outside the code strip, red means \"live now\": the entry being recorded, the armed end of the primary action, or a fault mark. It is never a decoration, a hover state or a category colour. Failed and stopped entries go to muted ink.",
+        "section": "colors"
+      },
+      {
+        "name": "The Code Is Data Rule",
+        "body": "The colour code is derived from the song's seed and drawn only as a strip. Never take a code colour for chrome, text or state.",
+        "section": "colors"
+      },
+      {
+        "name": "The Eleven Floor Rule",
+        "body": "Nothing set in this world drops below 11 logical px, at any scale.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two Hands Rule",
+        "body": "The mono engraves (labels, numbers, measurements, actions) and Geist light writes (the user's words). Never set user-written text in mono or a label in Geist.",
+        "section": "typography"
+      },
+      {
+        "name": "The Shared Rule Rule",
+        "body": "A horizontal rule that crosses the index column and the page must sit at the same height on both sides: 124 px on the studio, 64 px on secondary pages.",
+        "section": "layout"
+      },
+      {
+        "name": "The Comp Authority Rule",
+        "body": "Below 600 px, a layout question goes to the comp, expressed in comp px times `u`, and is never invented afresh.",
+        "section": "layout"
+      },
+      {
+        "name": "The Printed Sleeve Rule",
+        "body": "Nothing floats. If something needs separating, give it a rule or a band, never a shadow, a glow or a lighter card.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** build every control from the hairline cell (1 px, radius 0, 48 px minimum target) and change only its frame colour for state: rule at rest, ink when selected, red when live.",
+      "**Do** measure phone layouts in comp px times `u` and defer to the comp below 600 px.",
+      "**Do** keep the 124 px studio header band and the 64 px page header so rules line up across the index column.",
+      "**Do** set user-written words in Geist 300 and everything engraved in Geist Mono with 0.16em tracking, uppercase, never below 11 px.",
+      "**Do** step things in at 260 ms on `cubic-bezier(0.16, 1, 0.3, 1)` and honour reduce-motion by rendering the final state.",
+      "**Do** draw new glyphs on the 24-unit grid with a 1.25 px square-capped stroke."
+    ],
+    "donts": [
+      "**Don't** use red for anything except the live entry, the armed primary block and fault marks. Failed or stopped states use muted ink.",
+      "**Don't** use code-strip colours outside a code strip.",
+      "**Don't** round a rectangle, add a shadow or glow, or lift a surface to a lighter card. The plot's circle is the only curve.",
+      "**Don't** use gradients.",
+      "**Don't** add stock Material components (filled buttons, chips, outlined text fields, FABs, ripples). The theme turns splash and highlight off."
+    ]
+  }
+}

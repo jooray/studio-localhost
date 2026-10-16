@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Localhost Recording Studio</title>
+<meta name="description" content="Make full songs from a style and lyrics on your own phone or computer. No server, no account, works offline. Free software, MIT.">
+<meta name="theme-color" content="#0A0A0B">
+<meta property="og:title" content="Localhost Recording Studio">
+<meta property="og:description" content="Full songs from a style and lyrics, made on your own device, offline.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/img/og.jpg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<link rel="preload" href="assets/fonts/Geist-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/GeistMono-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/site.css">
+<script>document.documentElement.classList.add('js')</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="brand" href="#top" aria-label="Localhost Recording Studio, back to top">
+    <img src="assets/img/favicon-32.png" width="24" height="24" alt="">
+    <span>Localhost Recording Studio</span>
+  </a>
+  <nav aria-label="Sections">
+    <a href="#ad">Ad</a>
+    <a href="#song">Song</a>
+    <a href="#how">How</a>
+    <a href="#get" class="nav-get">Get it</a>
+  </nav>
+</header>
+
+<main id="main">
+
+<!-- 1. HERO -->
+<section class="hero" id="top" aria-labelledby="hero-title">
+  <div class="hero-plot" aria-hidden="true">
+    <img src="assets/img/polar.svg" alt="" width="400" height="400">
+  </div>
+  <div class="hero-inner">
+    <p class="label">LRS-001 · A short film about silence</p>
+    <div class="stage">
+    <ol class="story" id="story">
+      <li>The zombie apocalypse started on a Tuesday.</li>
+      <li>You're alone in a forest, running. The zombies took out the cell towers on day one.</li>
+      <li>This should feel like a movie. It doesn't, and it takes you a minute to work out why.</li>
+      <li>There's no soundtrack. Just your breathing.</li>
+      <li>So you pull out your phone, open the studio and make one.</li>
+      <li class="story-run">Run, run, run.</li>
+    </ol>
+    <div class="punch" id="punch">
+      <h1 id="hero-title">Localhost Recording&nbsp;Studio</h1>
+      <p class="lede">Write a style and some lyrics. It makes the whole song on your own phone or computer, offline.</p>
+      <div class="strip strip-lg" aria-hidden="true"><i class="c-grey"></i><i class="c-blue"></i><i class="c-gold"></i><i class="c-red"></i><i class="c-white"></i></div>
+      <p class="hero-links"><a class="btn btn-primary" href="#song">Hear the song it made</a> <a class="btn" href="#get">Get the app</a></p>
+    </div>
+    </div>
+    <button class="story-skip" id="story-skip" type="button">Skip intro</button>
+    <button class="story-skip story-replay" id="story-replay" type="button">Replay intro</button>
+  </div>
+</section>
+
+<!-- 2. AD -->
+<section class="section" id="ad" aria-labelledby="ad-title">
+  <div class="sec-head">
+    <p class="label">LRS-000 · Side A</p>
+    <h2 id="ad-title">The ad</h2>
+  </div>
+  <div class="frame video-frame" id="video-slot">
+    <div class="placeholder" id="video-placeholder">
+      <img src="assets/img/polar.svg" alt="" width="400" height="400" loading="lazy">
+      <p class="label">LRS-000 · Ad in production</p>
+    </div>
+  </div>
+  <details class="transcript" id="transcript" hidden>
+    <summary>Read the voiceover</summary>
+    <div id="transcript-text"></div>
+  </details>
+  <noscript><p class="note">The ad lives at <a href="media/ad.mp4">media/ad.mp4</a>.</p></noscript>
+</section>
+
+<!-- 3. SONG -->
+<section class="section" id="song" aria-labelledby="song-title">
+  <div class="sec-head">
+    <p class="label">LRS-RUN · Side B</p>
+    <h2 id="song-title">"Run, run, run"</h2>
+    <p class="sec-sub">The soundtrack from the forest. The app made it, start to finish.</p>
+  </div>
+
+  <div class="player frame" id="player" data-src="media/run-song.mp3">
+    <div class="player-plot">
+      <canvas id="plot" width="640" height="640" role="img" aria-label="Polar pulse plot of the song, drawn live while it plays"></canvas>
+    </div>
+    <div class="player-side">
+      <div class="player-id">
+        <span class="cat">LRS-RUN</span>
+        <span class="state label" id="p-state">Pressing pending</span>
+      </div>
+      <div class="strip strip-song" aria-hidden="true"><i class="c-white" style="flex:2"></i><i class="c-grey"></i><i class="c-red" style="flex:2"></i><i class="c-gold"></i><i class="c-blue"></i></div>
+      <div class="transport">
+        <button type="button" class="play" id="p-play" aria-label="Play" disabled>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path class="i-play" d="M7 4.5v15l12.5-7.5z"/><g class="i-pause"><rect x="6" y="4.5" width="4" height="15"/><rect x="14" y="4.5" width="4" height="15"/></g></svg>
+        </button>
+        <span class="time" id="p-time" aria-live="off">0:00 / 0:00</span>
+      </div>
+      <input type="range" class="scrub" id="p-scrub" min="0" max="1000" value="0" step="1" aria-label="Seek" disabled>
+      <dl class="meta" id="p-meta">
+        <div><dt>Title</dt><dd>Run, run, run</dd></div>
+        <div><dt>Made on</dt><dd>Localhost</dd></div>
+        <div><dt>Cell reception</dt><dd>None</dd></div>
+      </dl>
+      <p class="note" id="p-note">The song is still being rendered. It will appear here when <code>media/run-song.mp3</code> exists.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4. HOW -->
+<section class="section" id="how" aria-labelledby="how-title">
+  <div class="sec-head">
+    <p class="label">Liner notes</p>
+    <h2 id="how-title">How it works</h2>
+  </div>
+  <ol class="steps">
+    <li><span class="label">01 · Write</span><p>A style ("breathless synth chase, 140 bpm, panic") and lyrics with section tags like <code>[Verse]</code> and <code>[Chorus]</code>.</p></li>
+    <li><span class="label">02 · Record</span><p>Press record. Queue a few variants if you like and put the phone back in your pocket.</p></li>
+    <li><span class="label">03 · Render</span><p>The model runs on your phone or computer. Nothing is uploaded and you don't need an account.</p></li>
+    <li><span class="label">04 · Extend</span><p>Pick any section of a song you like and continue it from there. Extends can be chained.</p></li>
+  </ol>
+
+  <div class="two">
+    <div>
+      <h3 class="label">Engine, picked by hardware</h3>
+      <table class="spec">
+        <thead><tr><th scope="col">Hardware</th><th scope="col">Engine</th></tr></thead>
+        <tbody>
+          <tr><td>Apple Silicon Mac</td><td>MLX (mlx-Yue)</td></tr>
+          <tr><td>Linux PC</td><td>yue2.cpp on CUDA, Vulkan or CPU</td></tr>
+          <tr><td>Android phone</td><td>yue2.cpp, on the device</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3 class="label">How long it takes</h3>
+      <table class="spec">
+        <tbody>
+          <tr><th scope="row">25 s song</th><td>about 23 s on a Mac M2 Max (MLX, 8-bit, 8 steps)</td></tr>
+          <tr><th scope="row">Extend +15 s</th><td>about 14 s, same Mac</td></tr>
+          <tr><th scope="row">On a phone</th><td>minutes for every 10 s of song. Slow, but it works. Let it run in the background.</td></tr>
+        </tbody>
+      </table>
+      <p class="note">These are the only numbers we have measured. First run downloads the model: about 3.5 GB on Android, about 6 GB on a Mac.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5. SCREENSHOTS -->
+<section class="section" id="shots" aria-labelledby="shots-title">
+  <div class="sec-head">
+    <p class="label">Plates</p>
+    <h2 id="shots-title">What it looks like</h2>
+  </div>
+  <div class="shots-desk">
+    <figure class="frame shot">
+      <img src="assets/img/desktop-idle.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Desktop window: song index on the left with catalogue numbers LRS-012 to LRS-015, a large polar pulse plot in the middle, style and lyrics on the right and a Record LRS-016 button.">
+      <figcaption class="label">Desktop · the studio</figcaption>
+    </figure>
+    <figure class="frame shot">
+      <img src="assets/img/song-desktop.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Desktop song detail for LRS-014: play controls, export buttons, format FLAC 48 kHz stereo, seed, steps and the model licence YuE2-3B CC-BY-NC-4.0.">
+      <figcaption class="label">Desktop · song details</figcaption>
+    </figure>
+  </div>
+  <div class="shots-phone">
+    <figure class="frame shot">
+      <img src="assets/img/phone-idle.webp" width="390" height="844" loading="lazy" decoding="async" alt="Phone screen with the polar plot of LRS-015, its style and lyrics, the colour code strip and a Record LRS-016 button.">
+      <figcaption class="label">Phone · idle</figcaption>
+    </figure>
+    <figure class="frame shot">
+      <img src="assets/img/hero-repro.webp" width="576" height="1024" loading="lazy" decoding="async" alt="Phone screen while recording LRS-015, at 2:14 of 4:00, with a progress arc around the polar plot.">
+      <figcaption class="label">Phone · recording</figcaption>
+    </figure>
+    <figure class="frame shot">
+      <img src="assets/img/phone-playing.webp" width="390" height="844" loading="lazy" decoding="async" alt="Phone screen playing LRS-015 at 1:04 of 5:00, with a progress arc on the outer ring of the polar plot.">
+      <figcaption class="label">Phone · playing</figcaption>
+    </figure>
+    <figure class="frame shot">
+      <img src="assets/img/setup-phone.webp" width="390" height="844" loading="lazy" decoding="async" alt="Model setup screen: YuE2-3B by M-A-P, its CC BY-NC 4.0 licence with an accept checkbox, the MLX engine and a choice of weights.">
+      <figcaption class="label">Phone · model setup</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- 6. LICENCES -->
+<section class="section" id="licences" aria-labelledby="lic-title">
+  <div class="sec-head">
+    <p class="label">Small print, large enough to read</p>
+    <h2 id="lic-title">Models and licences</h2>
+  </div>
+  <div class="two">
+    <div class="frame card">
+      <p class="label">The app</p>
+      <p class="big">MIT</p>
+      <p>Free software. Fork it if you want to.</p>
+    </div>
+    <div class="frame card">
+      <p class="label">The model · YuE2-3B by M-A-P</p>
+      <p class="big">CC BY-NC 4.0</p>
+      <p>The first supported model is non-commercial, with attribution to M-A-P. The app works with other models too, and each one brings its own licence. You see it and accept it before anything downloads, and every song remembers which model and licence made it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7. GET -->
+<section class="section" id="get" aria-labelledby="get-title">
+  <div class="sec-head">
+    <p class="label">Pressings</p>
+    <h2 id="get-title">Get it</h2>
+  </div>
+  <ul class="get">
+    <li class="frame">
+      <span class="label">Android</span>
+      <p>Signed APK. arm64, Android 14 or newer.</p>
+      <a class="btn" href="https://github.com/jooray/studio-localhost/releases">Releases</a>
+    </li>
+    <li class="frame">
+      <span class="label">macOS</span>
+      <p>App bundle, Apple Silicon recommended. Not notarized yet, so right-click and Open the first time.</p>
+      <a class="btn" href="https://github.com/jooray/studio-localhost/releases">Releases</a>
+    </li>
+    <li class="frame">
+      <span class="label">Linux</span>
+      <p>Build from source with Flutter. The setup builds yue2.cpp for your GPU.</p>
+      <a class="btn" href="https://github.com/jooray/studio-localhost#build-from-source">Build notes</a>
+    </li>
+    <li class="frame">
+      <span class="label">Zapstore</span>
+      <p>Coming.</p>
+      <span class="btn btn-off" aria-disabled="true">Soon</span>
+    </li>
+  </ul>
+  <p class="note">Source: <a href="https://github.com/jooray/studio-localhost">github.com/jooray/studio-localhost</a>. The repository is private until version 1, so these links may not open for you yet.</p>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="strip" aria-hidden="true"><i class="c-grey"></i><i class="c-blue"></i><i class="c-gold"></i><i class="c-red"></i><i class="c-white"></i></div>
+  <p class="label">Localhost Recording Studio · MIT licence</p>
+  <p class="credits">Built on <a href="https://huggingface.co/m-a-p/YuE2-3B">YuE2</a> by M-A-P, <a href="https://github.com/vanch007/mlx-Yue">mlx-Yue</a>, <a href="https://github.com/ServeurpersoCom/yue2.cpp">yue2.cpp</a>, <a href="https://github.com/ggml-org/ggml">ggml</a>, <a href="https://github.com/ml-explore/mlx">MLX</a> and <a href="https://flutter.dev">Flutter</a>. Set in Geist and Geist Mono (SIL OFL).</p>
+  <p class="joke">No cell towers were needed to make this soundtrack. The zombies have been informed.</p>
+</footer>
+
+<script src="assets/site.js" defer></script>
+</body>
+</html>

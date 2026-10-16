@@ -1,0 +1,22 @@
+repository: https://github.com/jooray/studio-localhost
+metadata_sources:
+    - github
+name: Localhost Recording Studio
+summary: Make full songs from a style and lyrics, offline, on your phone.
+description: |
+  Write a style and some lyrics, press record, and your phone makes the whole song. Everything runs on the device. You don't need an account, and after the model download you don't need the internet either.
+
+  The first model is YuE2-3B. It takes a style such as "fast punk rock, screaming male vocal" plus lyrics with [Verse] and [Chorus] tags and renders a full stereo song. You can extend a song from any section, reuse a prompt for a new take, and rename songs in the catalogue.
+
+  On a phone it is slow: expect a few minutes for every 10 seconds of music. Jobs run in the background and pick up again if Android closes the app. The same app runs on macOS and Linux, where it is much faster.
+
+  The app is free software under the MIT licence. Each model brings its own licence, which you accept before downloading. YuE2-3B is CC BY-NC 4.0, so songs made with it are for non-commercial use.
+website: https://jooray.github.io/studio-localhost/
+icon: ./assets/brand/icon-512.png
+tags:
+  - music
+  - audio
+  - ai
+  - offline
+  - songwriting
+pubkey: npub1m2mvvpjugwdehtaskrcl7ksvdqnnhnjur9v6g9v266nss504q7mqvlr8p9

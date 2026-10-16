@@ -1,0 +1,13 @@
+{
+  "title": "Run, run, run",
+  "style": "English, fast aggressive punk rock, hardcore punk, screaming raw male vocal, shouted gang vocals, heavily distorted guitars, pounding fast drums, 180 BPM, raw garage production, relentless, vocals start immediately",
+  "lyrics": "[Chorus]\nRun, run, run, run, run towards the sun\nRun, run, run, run, run, ruuuuuun\nRun, run, run, run, run towards the sun\nRun, run, run, run, run, ruuuuuun\n\n[Chorus]\nRun, run, run, run, run towards the sun\nRun, run, run, run, run, ruuuuuun\nRun, run, run, run, run towards the sun\nRun, run, run, run, run, ruuuuuun\n\n[Bridge]\nRun! Run! Run!\nRun! Run! Run!\nRun, run, run, run, run\nRuuuuuun!\n\n[Chorus]\nRun, run, run, run, run towards the sun\nRun, run, run, run, run, ruuuuuun\nRun, run, run, run, run towards the sun\nRun, run, run, run, run, ruuuuuun\n\n[Outro]\nRun, run, run, run, run towards the sun\n",
+  "model": "YuE2-3B",
+  "device": "MacBook Pro M2 Max · MLX",
+  "steps": 32,
+  "precision": "bf16",
+  "seed": 4111,
+  "render_seconds": 198,
+  "render_time": "3 min 18 s",
+  "duration_seconds": 87.3
+}
