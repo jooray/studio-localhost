@@ -1,0 +1,5 @@
+{
+  "prompt": "Portrait smartphone app screen mockup, full-bleed UI screenshot only, no device frame, no hands. App name \"Localhost Recording Studio\". It is the main writing screen of a local AI music generator where you write lyrics and a style, then make a song. Real content: style line \"cinematic dark jazz, mournful trombone, brushed drums, Rhodes\"; lyrics with section tags \"[Intro]\" \"[Verse]\" \"Neon fades along the lane / Footsteps keep the time of rain\" \"[Chorus]\" \"Let the night come into view\". Minimalist, very little text, no settings visible up front, legible crisp UI typography. Visual world: a jazz fake-book lead sheet. Bright white paper page, engraved black ink; at top left the style written like a tempo marking in italic; each section marked with a boxed rehearsal letter [A] Verse, [B] Chorus in the margin; lyrics under faint staff lines; one small gold accent; a single understated Record action at the foot. Clean engraving, generous margins, no clutter.",
+  "model": "venice nano-banana-pro",
+  "size": "592x1280"
+}

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Scaffold reference: comp-3-screen.webp</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300&display=swap">
+  <link rel="stylesheet" href="layout.css">
+  <style>html,body{margin:0}body{background:#090909}.region{box-sizing:border-box}.region.text p{white-space:pre-wrap}</style>
+</head>
+<body>
+<!-- Reference only. Every region sits at its measured box inside a comp-aspect frame. Take the boxes (layout.css), keep your own semantic structure. -->
+<main class="comp-frame" style="max-width:576px">
+  <div class="r-take-plot region chrome" data-region="take-plot"><!-- runtime polar pulse plot of the current take's waveform, drawn from audio data: concentric hairline rings, radial spokes, jagged white waveform burst around a centre, white progress arc on the outer ring --></div>
+  <div class="r-status-line region text" data-region="status-line"><!-- engraved caps status line RECORDING · LRS-015 · 2:14 / 4:00 between two hairline rules --><p style="font-size:var(--r-status-line-font);font-family:var(--r-status-line-family),sans-serif;font-weight:var(--r-status-line-weight);line-height:1.05;margin:0">status-line</p></div>
+  <div class="r-style region text" data-region="style"><!-- STYLE label in caps and the style text in two lines of grotesk --><p style="font-size:var(--r-style-font);line-height:1.05;margin:0">style</p></div>
+  <div class="r-lyrics region text" data-region="lyrics"><!-- LYRICS label, then lyric sheet with [VERSE] and [CHORUS] section tags in caps and lyric lines --><p style="font-size:var(--r-lyrics-font);line-height:1.05;margin:0">lyrics</p></div>
+  <div class="r-code-strip region chrome" data-region="code-strip"><!-- five-block colour code strip: grey, blue, gold, red, white, between hairline rules --></div>
+  <div class="r-catalogue-index region control" data-region="catalogue-index"><!-- catalogue index bar with entries 012 013 014 015 in hairline cells; 015 framed and set in red as the current entry: rebuild the control's chrome from the crop (comp-spec.mjs --crop catalogue-index); its ink box, border, fill, radius, and label size are the comp's --></div>
+</main>
+</body>
+</html>

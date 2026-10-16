@@ -1,0 +1,10 @@
+{
+  "title": "Approve the main screen composition",
+  "question": "Three layouts in the Catalogue Sleeve world. Which should the build follow? Use steer to combine (e.g. '2, with 3's recording plot while a take renders').",
+  "options": [
+    {"id": "comp-1", "label": "Plot leads", "thesis": "The last song's pulse plot owns the top half; lyrics sit small beneath.", "palette": ["#0B0B0C","#F2F2F0","#3F6E8C","#D8A461","#C8553D"], "materials": ["pulse plot","engraved caps"], "viewport": "Catalogue number, a large stacked-line plot, then style and lyrics in small caps, colour-code strip at the foot.", "risk": "Writing is secondary, which contradicts 'writing leads'.", "comp": ".impeccable/mocks/comp-1.webp"},
+    {"id": "comp-2", "label": "Writing leads", "thesis": "The lyric sheet is the screen; one framed Record button with the next catalogue number.", "palette": ["#0B0B0C","#F2F2F0","#3F6E8C","#D8A461","#C8553D"], "materials": ["hairline frames","section tick rail"], "viewport": "Style line, large lyrics with a proportional section rail in the margin, RECORD LRS-015 with a red block, settings etched in one grey line beneath.", "risk": "Quietest of the three; the plot only appears once a song exists.", "comp": ".impeccable/mocks/comp-2.webp"},
+    {"id": "comp-3", "label": "Take in progress", "thesis": "A polar plot of the take being cut sits above the lyrics; the catalogue index runs along the bottom.", "palette": ["#0B0B0C","#F2F2F0","#3F6E8C","#D8A461","#C8553D"], "materials": ["polar pulse plot","catalogue index bar"], "viewport": "Circular plot with progress arc, RECORDING · LRS-015 · 2:14/4:00, style and lyrics, numbered index 012–015 with the current one framed red.", "risk": "Busier; the plot competes with writing when idle.", "comp": ".impeccable/mocks/comp-3.webp"}
+  ],
+  "steer": true
+}

@@ -1,0 +1,97 @@
+{
+  "tool": "build-phase",
+  "version": 2,
+  "startedAt": "2026-10-16T07:36:05.957Z",
+  "comp": ".impeccable/mocks/comp-3.webp",
+  "direction": "3fa1913f",
+  "breakpoint": "1024x1024",
+  "artifact": null,
+  "phase": "spec",
+  "phases": {
+    "comps": {
+      "status": "closed",
+      "openedAt": "2026-10-16T07:36:05.957Z",
+      "closedAt": "2026-10-16T07:37:38.444Z",
+      "attempts": 2,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "3 comps, 1 approved",
+        "approved": ".impeccable/mocks/comp-3.webp",
+        "at": "2026-10-16T07:37:38.444Z"
+      },
+      "forced": null
+    },
+    "spec": {
+      "status": "open",
+      "openedAt": "2026-10-16T07:37:38.473Z",
+      "closedAt": null,
+      "attempts": 2,
+      "notes": [],
+      "gate": {
+        "ok": false,
+        "reasons": [
+          "spec measures .impeccable/mocks/comp-3-screen.webp, but this build started on .impeccable/mocks/comp-3.webp; re-run comp-spec on the approved comp"
+        ],
+        "at": "2026-10-16T07:39:24.169Z"
+      },
+      "forced": null
+    },
+    "plates": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "hero": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "sections": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "motion": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "responsive": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "review": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    }
+  },
+  "finish": null
+}

@@ -1,0 +1,509 @@
+{
+  "tool": "comp-spec",
+  "version": 1,
+  "createdAt": "2026-10-16T07:39:12.615Z",
+  "comp": ".impeccable/mocks/comp-3-screen.webp",
+  "warnings": [
+    "region take-plot: \"codeDrawn\": true set in the regions file (the painted-material refusal is overridden: code draws this region)",
+    "region take-plot: \"container\": true set in the regions file (the region-size refusal is overridden: one undivided element)"
+  ],
+  "uncoveredInkCells": [],
+  "compSize": {
+    "width": 576,
+    "height": 1024
+  },
+  "aspect": 0.5625,
+  "orientation": "portrait",
+  "palette": [
+    {
+      "hex": "#090909",
+      "coverage": 0.8765
+    },
+    {
+      "hex": "#f4f4f4",
+      "coverage": 0.0665
+    },
+    {
+      "hex": "#848484",
+      "coverage": 0.0253
+    },
+    {
+      "hex": "#373737",
+      "coverage": 0.0191
+    },
+    {
+      "hex": "#b9b9b9",
+      "coverage": 0.0125
+    }
+  ],
+  "bands": [
+    {
+      "y": 0.4561,
+      "strength": 0.8045
+    },
+    {
+      "y": 0.4868,
+      "strength": 0.7514
+    },
+    {
+      "y": 0.5482,
+      "strength": 0.8119
+    },
+    {
+      "y": 0.5877,
+      "strength": 0.4464
+    },
+    {
+      "y": 0.614,
+      "strength": 0.7544
+    },
+    {
+      "y": 0.6886,
+      "strength": 0.3726
+    },
+    {
+      "y": 0.7149,
+      "strength": 0.4344
+    },
+    {
+      "y": 0.8421,
+      "strength": 1
+    },
+    {
+      "y": 0.8816,
+      "strength": 1
+    },
+    {
+      "y": 0.9123,
+      "strength": 0.3261
+    },
+    {
+      "y": 0.9342,
+      "strength": 0.4952
+    }
+  ],
+  "regions": [
+    {
+      "id": "take-plot",
+      "kind": "chrome",
+      "note": "runtime polar pulse plot of the current take's waveform, drawn from audio data: concentric hairline rings, radial spokes, jagged white waveform burst around a centre, white progress arc on the outer ring",
+      "grid": "B0:I4",
+      "codeDrawn": true,
+      "container": true,
+      "snap": false,
+      "box": {
+        "x": 0.1,
+        "y": 0,
+        "w": 0.8,
+        "h": 0.5
+      },
+      "px": {
+        "x": 58,
+        "y": 0,
+        "w": 461,
+        "h": 512
+      },
+      "aspect": 0.9004,
+      "palette": [
+        {
+          "hex": "#090a0a",
+          "coverage": 0.8101
+        },
+        {
+          "hex": "#f5f5f5",
+          "coverage": 0.1019
+        },
+        {
+          "hex": "#7e7e7e",
+          "coverage": 0.0413
+        },
+        {
+          "hex": "#484848",
+          "coverage": 0.0311
+        },
+        {
+          "hex": "#b7b7b7",
+          "coverage": 0.0157
+        }
+      ],
+      "detail": {
+        "energy": 45.0997
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null
+    },
+    {
+      "id": "status-line",
+      "kind": "text",
+      "note": "engraved caps status line RECORDING · LRS-015 · 2:14 / 4:00 between two hairline rules",
+      "grid": "A4:J4",
+      "coverBox": {
+        "x": 0,
+        "y": 0.4,
+        "w": 1,
+        "h": 0.1
+      },
+      "box": {
+        "x": 0.0313,
+        "y": 0.4473,
+        "w": 0.9375,
+        "h": 0.0527
+      },
+      "px": {
+        "x": 18,
+        "y": 458,
+        "w": 540,
+        "h": 54
+      },
+      "aspect": 10,
+      "palette": [
+        {
+          "hex": "#09090a",
+          "coverage": 0.8342
+        },
+        {
+          "hex": "#3c3d3d",
+          "coverage": 0.0778
+        },
+        {
+          "hex": "#f3f3f3",
+          "coverage": 0.048
+        },
+        {
+          "hex": "#bfbfbf",
+          "coverage": 0.0245
+        },
+        {
+          "hex": "#808080",
+          "coverage": 0.0155
+        }
+      ],
+      "detail": {
+        "energy": 61.128
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": {
+          "lines": 1,
+          "glyphs": 28,
+          "capHeightPx": 19.7,
+          "inkIsDark": false,
+          "allCaps": true,
+          "advance": 0.6602,
+          "advTall": 0.6729,
+          "advX": null,
+          "gap": 0.1524,
+          "xRatio": null,
+          "stemW": 0.1369,
+          "contrast": 1.0585,
+          "serif": 0.9104,
+          "densTall": 0.4792,
+          "densX": null,
+          "weight": 0.4792
+        },
+        "widthClass": "normal",
+        "weightClass": "regular",
+        "chosen": {
+          "family": "Geist Mono",
+          "weight": 300,
+          "fontSizePx": 27,
+          "source": "index",
+          "fp": {
+            "lines": 1,
+            "glyphs": 28,
+            "capHeightPx": 19.9,
+            "inkIsDark": true,
+            "allCaps": true,
+            "advance": 0.6539,
+            "advTall": 0.6791,
+            "advX": null,
+            "gap": 0.1509,
+            "xRatio": null,
+            "stemW": 0.1336,
+            "contrast": 1.021,
+            "serif": 0.9948,
+            "densTall": 0.4546,
+            "densX": null,
+            "weight": 0.4546
+          },
+          "stamp": "1210fd27dae8"
+        }
+      }
+    },
+    {
+      "id": "style",
+      "kind": "text",
+      "note": "STYLE label in caps and the style text in two lines of grotesk",
+      "grid": "A5:J5",
+      "coverBox": {
+        "x": 0,
+        "y": 0.5,
+        "w": 1,
+        "h": 0.1
+      },
+      "box": {
+        "x": 0.0313,
+        "y": 0.5,
+        "w": 0.9375,
+        "h": 0.0996
+      },
+      "px": {
+        "x": 18,
+        "y": 512,
+        "w": 540,
+        "h": 102
+      },
+      "aspect": 5.2941,
+      "palette": [
+        {
+          "hex": "#090909",
+          "coverage": 0.8893
+        },
+        {
+          "hex": "#f1f1f1",
+          "coverage": 0.04
+        },
+        {
+          "hex": "#b7b7b7",
+          "coverage": 0.0356
+        },
+        {
+          "hex": "#4c4c4d",
+          "coverage": 0.0264
+        },
+        {
+          "hex": "#868686",
+          "coverage": 0.0087
+        }
+      ],
+      "detail": {
+        "energy": 36.6659
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": {
+          "lines": 2,
+          "glyphs": 51,
+          "capHeightPx": 17.3,
+          "inkIsDark": false,
+          "allCaps": false,
+          "advance": 0.6041,
+          "advTall": 0.5786,
+          "advX": 0.6041,
+          "gap": 0.1151,
+          "xRatio": 0.735,
+          "stemW": 0.1394,
+          "contrast": 1.0648,
+          "serif": 0.3571,
+          "densTall": 0.4648,
+          "densX": 0.4991,
+          "weight": 0.4648
+        },
+        "widthClass": "normal",
+        "weightClass": "regular"
+      }
+    },
+    {
+      "id": "lyrics",
+      "kind": "text",
+      "note": "LYRICS label, then lyric sheet with [VERSE] and [CHORUS] section tags in caps and lyric lines",
+      "grid": "A6:J7",
+      "coverBox": {
+        "x": 0,
+        "y": 0.6,
+        "w": 1,
+        "h": 0.2
+      },
+      "box": {
+        "x": 0.0313,
+        "y": 0.6055,
+        "w": 0.9375,
+        "h": 0.1348
+      },
+      "px": {
+        "x": 18,
+        "y": 620,
+        "w": 540,
+        "h": 138
+      },
+      "aspect": 3.913,
+      "palette": [
+        {
+          "hex": "#090909",
+          "coverage": 0.913
+        },
+        {
+          "hex": "#545454",
+          "coverage": 0.0408
+        },
+        {
+          "hex": "#f3f3f3",
+          "coverage": 0.0306
+        },
+        {
+          "hex": "#afafaf",
+          "coverage": 0.0098
+        },
+        {
+          "hex": "#7d7d7d",
+          "coverage": 0.0057
+        }
+      ],
+      "detail": {
+        "energy": 34.5875
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": {
+          "lines": 4,
+          "glyphs": 68,
+          "capHeightPx": 17.5,
+          "inkIsDark": false,
+          "allCaps": true,
+          "advance": 0.547,
+          "advTall": 0.2878,
+          "advX": null,
+          "gap": 0.1151,
+          "xRatio": null,
+          "stemW": 0.1433,
+          "contrast": 1.0881,
+          "serif": 0.4025,
+          "densTall": 0.5614,
+          "densX": null,
+          "weight": 0.5614
+        },
+        "widthClass": "compressed",
+        "weightClass": "bold"
+      }
+    },
+    {
+      "id": "code-strip",
+      "kind": "chrome",
+      "note": "five-block colour code strip: grey, blue, gold, red, white, between hairline rules",
+      "grid": "A8:J8",
+      "box": {
+        "x": 0,
+        "y": 0.8,
+        "w": 1,
+        "h": 0.1
+      },
+      "px": {
+        "x": 0,
+        "y": 819,
+        "w": 576,
+        "h": 102
+      },
+      "aspect": 5.6471,
+      "palette": [
+        {
+          "hex": "#090809",
+          "coverage": 0.6481
+        },
+        {
+          "hex": "#f3f3f3",
+          "coverage": 0.1497
+        },
+        {
+          "hex": "#7d7d7f",
+          "coverage": 0.0925
+        },
+        {
+          "hex": "#396882",
+          "coverage": 0.0575
+        },
+        {
+          "hex": "#b84938",
+          "coverage": 0.0523
+        }
+      ],
+      "detail": {
+        "energy": 27.4985
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null
+    },
+    {
+      "id": "catalogue-index",
+      "kind": "control",
+      "note": "catalogue index bar with entries 012 013 014 015 in hairline cells; 015 framed and set in red as the current entry",
+      "grid": "A9:J9",
+      "coverBox": {
+        "x": 0,
+        "y": 0.9,
+        "w": 1,
+        "h": 0.1
+      },
+      "box": {
+        "x": 0.0313,
+        "y": 0.9004,
+        "w": 0.9375,
+        "h": 0.0586
+      },
+      "px": {
+        "x": 18,
+        "y": 922,
+        "w": 540,
+        "h": 60
+      },
+      "aspect": 9,
+      "palette": [
+        {
+          "hex": "#0a0909",
+          "coverage": 0.8896
+        },
+        {
+          "hex": "#8d8e8e",
+          "coverage": 0.0467
+        },
+        {
+          "hex": "#f4f5f5",
+          "coverage": 0.0288
+        },
+        {
+          "hex": "#583836",
+          "coverage": 0.0236
+        },
+        {
+          "hex": "#330e0e",
+          "coverage": 0.0112
+        }
+      ],
+      "detail": {
+        "energy": 41.827
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": {
+          "lines": 1,
+          "glyphs": 24,
+          "capHeightPx": 14,
+          "inkIsDark": false,
+          "allCaps": false,
+          "advance": 0.9677,
+          "advTall": 1.2,
+          "advX": 0.9032,
+          "gap": 0.32,
+          "xRatio": 0.447,
+          "stemW": 0.2142,
+          "contrast": 1.008,
+          "serif": 0.9995,
+          "densTall": 0.4079,
+          "densX": 0.591,
+          "weight": 0.4079
+        },
+        "widthClass": "wide",
+        "weightClass": "regular"
+      }
+    }
+  ]
+}
