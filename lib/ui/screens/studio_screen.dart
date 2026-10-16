@@ -218,9 +218,10 @@ class _WideStudio extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: side),
       child: const StatusLine(inset: 0),
     );
+    // The primary action keeps its framed cell (and red end-block when ready) inside the band.
     final record = Padding(
-      padding: EdgeInsets.symmetric(horizontal: side),
-      child: const RecordRow(joined: false, framed: false),
+      padding: EdgeInsets.symmetric(horizontal: side, vertical: 7 * u),
+      child: const RecordRow(joined: false),
     );
     final strip = Padding(padding: EdgeInsets.fromLTRB(side, 20 * u, side, 24 * u), child: const CurrentStrip(height: 34));
     final Widget body;
@@ -279,13 +280,21 @@ class _WideStudio extends StatelessWidget {
         ],
       );
     } else {
+      // One column, same reading order as desktop: plot, status, then the writing together.
+      // The top band matches the index column's page header so the first rules line up.
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          style,
+          SizedBox(
+            height: pageHeaderHeight,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: side),
+              child: const Align(alignment: Alignment.centerLeft, child: Etched('Studio', size: 13, color: Sleeve.ink)),
+            ),
+          ),
           const Rule(),
           SizedBox(
-            height: 360 * u,
+            height: 340 * u,
             child: Padding(
               padding: EdgeInsets.all(16 * u),
               child: const Center(child: AspectRatio(aspectRatio: 1, child: TakePlot())),
@@ -294,11 +303,13 @@ class _WideStudio extends StatelessWidget {
           const Rule(),
           SizedBox(height: bandH, child: status),
           const Rule(),
+          Padding(padding: EdgeInsets.fromLTRB(side, 18, side, 14), child: const StyleBlock(lines: 2)),
+          const Rule(),
           Expanded(child: lyrics),
           const _WideQueue(),
           strip,
           SizedBox(height: bandH, child: record),
-          SizedBox(height: 20 * u),
+          SizedBox(height: 14 * u),
         ],
       );
     }
@@ -609,10 +620,10 @@ class RecordRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.watch<TakeState>();
     final f = context.watch<GenerateForm>();
-    final studio = context.watch<Studio>();
     final u = SleeveScale.of(context);
     final busy = t.mode == TakeMode.recording || t.mode == TakeMode.waiting;
-    final ready = studio.engine != null && f.canSubmit;
+    // Ready whenever there is something to record; without an engine, Record routes to setup.
+    final ready = f.hasWords;
     final next = Catalogue.format(t.nextNumber);
     final n = f.variants;
     final label = '${busy ? 'QUEUE' : 'RECORD'} ${n > 1 ? '$next +${n - 1}' : next}';

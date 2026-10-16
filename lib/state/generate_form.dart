@@ -55,6 +55,9 @@ class GenerateForm extends ChangeNotifier {
   double get maxLength => studio.model?.limits.maxSeconds ?? 360;
 
   String get effectiveMode => instrumental ? 'off' : (modes.contains(mode) ? mode : (modes.isEmpty ? '' : modes.first));
+  /// There is something to record (style or lyrics).
+  bool get hasWords => style.text.trim().isNotEmpty || lyrics.text.trim().isNotEmpty;
+
   bool get canSubmit =>
       studio.engine != null && (style.text.trim().isNotEmpty || lyrics.text.trim().isNotEmpty);
 

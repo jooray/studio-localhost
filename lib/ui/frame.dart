@@ -37,7 +37,7 @@ class AdaptiveFrame extends StatelessWidget {
       children: [
         SizedBox(
           width: indexColumnWidth(w),
-          child: IndexColumn(studio: studio),
+          child: IndexColumn(studio: studio, header: studio && w - indexColumnWidth(w) - 1 >= 760 ? wideTopBand : pageHeaderHeight),
         ),
         const Rule(vertical: true),
         Expanded(child: child),
@@ -47,8 +47,11 @@ class AdaptiveFrame extends StatelessWidget {
 }
 
 class IndexColumn extends StatelessWidget {
-  const IndexColumn({super.key, required this.studio});
+  const IndexColumn({super.key, required this.studio, this.header = pageHeaderHeight});
   final bool studio;
+
+  /// Header height, matching the first rule of the page beside it.
+  final double header;
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +68,7 @@ class IndexColumn extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              height: studio ? wideTopBand : pageHeaderHeight,
+              height: header,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -88,7 +91,7 @@ class IndexColumn extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (studio)
+                  if (header > pageHeaderHeight)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 6, 16, 0),
                       child: Etched(
