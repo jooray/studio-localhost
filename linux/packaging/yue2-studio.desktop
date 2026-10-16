@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=YuE2 Studio
+Comment=Local music generation with YuE2-3B
+Exec=yue2-studio
+Icon=yue2-studio
+Categories=AudioVideo;Audio;Music;
+Terminal=false
+StartupWMClass=yue2-studio

@@ -1,0 +1,21 @@
+import Cocoa
+import FlutterMacOS
+
+class MainFlutterWindow: NSWindow {
+  override func awakeFromNib() {
+    let flutterViewController = FlutterViewController()
+    self.contentViewController = flutterViewController
+    // Default to a comfortable desktop size, centred on the main screen.
+    let size = NSSize(width: 1360, height: 900)
+    let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+    let origin = NSPoint(x: screen.midX - size.width / 2, y: screen.midY - size.height / 2)
+    self.setFrame(NSRect(origin: origin, size: size), display: true)
+    self.minSize = NSSize(width: 1000, height: 680)
+    self.title = "YuE2 Studio"
+    self.setFrameAutosaveName("YuE2StudioMainWindow")
+
+    RegisterGeneratedPlugins(registry: flutterViewController)
+
+    super.awakeFromNib()
+  }
+}
