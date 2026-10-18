@@ -1,6 +1,6 @@
 /// App identity. The version matches pubspec.yaml (one version for every platform).
 const String appName = 'Localhost Recording Studio';
-const String appVersion = '0.4.4';
+const String appVersion = '0.4.5';
 const int appBuild = 8;
 const String appLicence = 'MIT';
 const String appSourceUrl = 'https://github.com/jooray/studio-localhost';
