@@ -41,9 +41,14 @@ Future<void> main() async {
   final library = Library(settings, paths);
   await library.refresh();
   final studio = Studio(settings: settings, registry: registry, hardware: hardware, library: library);
+  final setup = ModelSetup(studio);
+  // Desktop: model files that would fail on Record (such as the 0.4.4 MLX folder layout) send
+  // the user back to setup, which repairs them in place.
+  if (!Platform.isAndroid && demo.isEmpty && settings.setupComplete && studio.engineDescriptor != null) {
+    if (!(await setup.refresh()).ready) settings.setupComplete = false;
+  }
   if (settings.setupComplete && demo.isEmpty) await studio.rebuildEngine();
   final queue = JobQueue(studio, library);
-  final setup = ModelSetup(studio);
   final player = AudioPlayerModel();
   final nav = AppNav();
   final envelopes = Envelopes(settings);
