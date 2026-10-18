@@ -12,11 +12,12 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   media_kit: ^1.2.6
-  media_kit_libs_audio: ^1.0.7
   provider: ^6.1.5+1
   file_selector: ^1.1.0
   crypto: ^3.0.7
   path: ^1.9.1
+  media_kit_libs_macos_audio: ^1.1.4
+  media_kit_libs_linux: ^1.2.1
 
 dev_dependencies:
   flutter_test:

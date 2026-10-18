@@ -30,11 +30,13 @@ import kotlin.concurrent.thread
  */
 class MainActivity : FlutterActivity() {
     private val main = Handler(Looper.getMainLooper())
+    private var audio: AudioPlayerChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
         MethodChannel(messenger, "studio/native").setMethodCallHandler(::onCall)
+        audio = AudioPlayerChannel(applicationContext, messenger)
         EventChannel(messenger, "studio/events").setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                 Events.sink = events
@@ -44,6 +46,12 @@ class MainActivity : FlutterActivity() {
                 Events.sink = null
             }
         })
+    }
+
+    override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
+        audio?.release()
+        audio = null
+        super.cleanUpFlutterEngine(flutterEngine)
     }
 
     private val studioDir get() = GenerationService.dataDir(this)

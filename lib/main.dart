@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 
 import 'core/demo.dart';
@@ -13,6 +12,7 @@ import 'core/library/envelopes.dart';
 import 'core/library/library.dart';
 import 'core/models/registry.dart';
 import 'core/paths.dart';
+import 'core/playback/playback.dart';
 import 'core/player.dart';
 import 'core/selftest.dart';
 import 'core/settings.dart';
@@ -30,7 +30,7 @@ import 'ui/ui_test.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  MediaKit.ensureInitialized();
+  PlaybackBackend.ensureInitialized();
   final env = Platform.environment;
   final paths = await AppPaths.init();
   final settings = await Settings.load(paths);

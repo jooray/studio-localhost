@@ -1,38 +1,39 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:media_kit/media_kit.dart';
+import 'playback/playback.dart';
 
-/// One shared audio player (media_kit / libmpv on every platform).
+/// One shared audio player. The backend is Media3 on Android and media_kit on desktop
+/// (see [PlaybackBackend]).
 class AudioPlayerModel extends ChangeNotifier {
   AudioPlayerModel() {
     _subs.addAll([
-      _player.stream.position.listen((v) {
+      _player.position.listen((v) {
         position = v;
         notifyListeners();
       }),
-      _player.stream.duration.listen((v) {
+      _player.duration.listen((v) {
         duration = v;
         notifyListeners();
       }),
-      _player.stream.playing.listen((v) {
+      _player.playing.listen((v) {
         playing = v;
         notifyListeners();
       }),
-      _player.stream.completed.listen((v) {
+      _player.completed.listen((v) {
         if (v) {
           playing = false;
           notifyListeners();
         }
       }),
-      _player.stream.error.listen((e) {
+      _player.error.listen((e) {
         error = e;
         notifyListeners();
       }),
     ]);
   }
 
-  final Player _player = Player(configuration: const PlayerConfiguration(title: 'Localhost Recording Studio'));
+  final PlaybackBackend _player = PlaybackBackend.create();
   final List<StreamSubscription> _subs = [];
   String? path;
   String? title;
@@ -46,7 +47,7 @@ class AudioPlayerModel extends ChangeNotifier {
     if (path != file) {
       path = file;
       this.title = title;
-      await _player.open(Media(Uri.file(file).toString()), play: true);
+      await _player.open(file);
     } else {
       await _player.play();
     }
@@ -62,6 +63,7 @@ class AudioPlayerModel extends ChangeNotifier {
   }
 
   Future<void> pause() => _player.pause();
+  /// 0..1
   Future<void> setVolume(double v) => _player.setVolume(v);
   Future<void> seek(Duration d) => _player.seek(d);
 

@@ -95,6 +95,8 @@ kotlin {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.17.0")
+    // Song playback (AudioPlayerChannel). Pure Java/Kotlin; replaces media_kit/libmpv on Android.
+    implementation("androidx.media3:media3-exoplayer:1.8.0")
 }
 
 flutter {

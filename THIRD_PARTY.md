@@ -16,8 +16,9 @@ downloaded by the user after accepting its own licence (see "Models").
 | mp3enc (in yue2.cpp) | MP3 encoding | MIT |
 | [dr_flac](https://github.com/mackron/dr_libs) (vendored, `android/app/src/main/cpp/vendor/dr_flac.h`, dr_libs commit `dfe8377`) | FLAC decoding on Android (extend a library song) | Public domain (Unlicense) or MIT-0 |
 | `android/patches/yue2-android-hooks.patch` | progress hooks and thread override for yue2.cpp | MIT (this project) |
-| [media_kit](https://github.com/media-kit/media-kit) and `media_kit_libs_*` | audio playback | MIT |
-| libmpv and FFmpeg (prebuilt, shipped by `media_kit_libs_*`) | audio decoding and output | LGPL-2.1-or-later builds, dynamically linked |
+| [media_kit](https://github.com/media-kit/media-kit) and `media_kit_libs_macos_audio` / `media_kit_libs_linux` | audio playback on macOS and Linux | MIT |
+| [AndroidX Media3 ExoPlayer](https://github.com/androidx/media) | audio playback on Android | Apache-2.0 |
+| libmpv and FFmpeg (prebuilt, shipped by `media_kit_libs_*`; desktop only) | audio decoding and output | LGPL-2.1-or-later builds, dynamically linked |
 | [provider](https://pub.dev/packages/provider) | state management | MIT |
 | [file_selector](https://pub.dev/packages/file_selector) | open/save dialogs | BSD-3-Clause |
 | [crypto](https://pub.dev/packages/crypto), [path](https://pub.dev/packages/path) | SHA-256, paths | BSD-3-Clause |
