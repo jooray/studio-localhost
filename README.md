@@ -41,8 +41,8 @@ shown in the model setup and accepted before anything is downloaded; every song 
 model and licence it was made with. **YuE2-3B weights are CC BY-NC 4.0 (non-commercial use,
 attribution to M-A-P).** Third-party code is listed in [THIRD_PARTY.md](THIRD_PARTY.md).
 
-Download sizes: about 3.5 GB on Android (Q6_K GGUF + VAE), about 6 GB on Apple Silicon (8-bit
-MLX), 3.2–4.3 GB for GGUF on Linux.
+Download sizes: about 3.5 GB on Android (Q6_K GGUF + VAE), about 10.5 GB on Apple Silicon (MLX;
+mlx-Yue checks both AR precisions, so both are downloaded), 3.2–4.3 GB for GGUF on Linux.
 
 ## Install
 
@@ -66,13 +66,19 @@ flutter test
 ```
 
 **macOS:** Xcode, then `flutter build macos --release`.
-At runtime the setup flow needs `git` and [uv](https://docs.astral.sh/uv/) (installs into
-`~/.local/bin`; nothing is installed system-wide). An existing mlx-Yue checkout can be used via
+At runtime the setup flow needs `git` (Xcode command line tools). It uses
+[uv](https://docs.astral.sh/uv/) if you have it; otherwise it fetches the pinned standalone uv
+binary (sha256 checked) into the app's data folder, `~/Library/Application Support/Localhost
+Recording Studio/bin`. Nothing is installed system-wide. The weights land in
+`models/yue2-3b/mlx/` as `mlx-Yue2-3B/` (exactly the converted file set) plus `vae/` beside it,
+and setup runs mlx-Yue's `verify_conversion` before the first song. A folder left by 0.4.4 is
+repaired in place. An existing mlx-Yue checkout can be used via
 "Use an existing mlx-Yue folder" in the setup, or `STUDIO_MLX_ENGINE_DIR=/path/to/mlx-Yue`.
 
 **Linux:** `flutter build linux --release`. Build dependencies (Debian/Ubuntu names):
-`clang cmake ninja-build pkg-config libgtk-3-dev libmpv-dev`. At runtime: `git`, `cmake`, a C++
-compiler and `uv` (the setup builds yue2.cpp; CUDA or Vulkan headers are used when present).
+`clang cmake ninja-build pkg-config libgtk-3-dev libmpv-dev`. At runtime: `git`, `cmake` and a C++
+compiler (the setup builds yue2.cpp; CUDA or Vulkan headers are used when present). uv is fetched
+into `$XDG_DATA_HOME/localhost-recording-studio/bin` if it is not installed.
 
 **Android:** Android SDK with NDK 28.2.13676358 and CMake 3.22.1, JDK 17 or newer (Android
 Studio's JBR works). `flutter build apk --release --target-platform android-arm64`.

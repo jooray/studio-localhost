@@ -133,6 +133,9 @@ class ModelFormat {
   String get id => _j['id'] as String;
   String get kind => _j['kind'] as String? ?? 'files';
   String get repo => _j['repo'] as String? ?? '';
+
+  /// Pinned repo revision for hf-snapshot formats.
+  String get revision => _j['revision'] as String? ?? 'main';
   List<String> get engines => List<String>.from(_j['engines'] as List? ?? const []);
   Map<String, dynamic> get runtime => Map<String, dynamic>.from(_j['runtime'] as Map? ?? const {});
   String? get licenceNote => _j['licence_note'] as String?;

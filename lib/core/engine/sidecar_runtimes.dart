@@ -67,25 +67,36 @@ class MlxRuntime extends SidecarRuntime {
   @override
   String cwd() => engineDir;
 
-  /// The converted model folder: settings, the app's model dir, or an existing download inside
+  /// The app's own folder for this format. It holds `<repo name>/` (exactly the converted file
+  /// set mlx-Yue's verify_conversion accepts), `vae/` beside it and `.verified.json`.
+  String modelRoot(ModelSpec model, ModelFormat format) => AppPaths.instance.modelDir(model.id, format.id);
+
+  static String modelName(ModelFormat format) => format.repo.split('/').last;
+
+  String verifiedMarker(ModelSpec model, ModelFormat format) => p.join(modelRoot(model, format), '.verified.json');
+
+  /// The converted model folder: settings, the app's model root, or an existing download inside
   /// the engine checkout (`models/<repo name>`).
   String modelDir(ModelSpec model, ModelFormat format) {
     final v = settings.runtime('mlx.modelDir');
     if (v.isNotEmpty) return v;
-    final own = AppPaths.instance.modelDir(model.id, format.id);
-    if (Directory(own).existsSync()) return own;
-    final inEngine = p.join(engineDir, 'models', format.repo.split('/').last);
+    final root = modelRoot(model, format);
+    final own = p.join(root, modelName(format));
+    if (Directory(root).existsSync()) return own;
+    final inEngine = p.join(engineDir, 'models', modelName(format));
     if (Directory(inEngine).existsSync()) return inEngine;
     return own;
   }
 
+  /// Is the model folder the app's own (so setup may lay it out, repair and download into it)?
+  bool ownsModelDir(ModelSpec model, ModelFormat format) =>
+      p.equals(modelDir(model, format), p.join(modelRoot(model, format), modelName(format)));
+
+  /// The VAE folder sits next to the model folder, never inside it.
   String vaeDir(ModelSpec model, ModelFormat format) {
     final v = settings.runtime('mlx.vaeDir');
     if (v.isNotEmpty) return v;
-    final bundled = p.join(modelDir(model, format), 'vae');
-    if (Directory(bundled).existsSync()) return bundled;
-    final plain = p.join(engineDir, 'models', 'vae');
-    return Directory(plain).existsSync() ? plain : bundled;
+    return p.join(p.dirname(modelDir(model, format)), 'vae');
   }
 
   @override
@@ -104,7 +115,10 @@ class MlxRuntime extends SidecarRuntime {
     for (final pattern in variant.patterns) {
       if (pattern.endsWith('.safetensors')) files[pattern] = p.join(dir, pattern);
     }
+    files['conversion.json'] = p.join(dir, 'conversion.json');
     files['vae'] = p.join(vaeDir(model, format), 'model.safetensors');
+    // The app's own folder must also have passed mlx-Yue's verify_conversion once.
+    if (ownsModelDir(model, format)) files['verification'] = verifiedMarker(model, format);
     return files;
   }
 }

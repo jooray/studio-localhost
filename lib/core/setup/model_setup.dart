@@ -14,6 +14,7 @@ import '../models/registry.dart';
 import '../paths.dart';
 import '../platform/android_bridge.dart';
 import '../studio.dart';
+import 'uv_bootstrap.dart';
 
 /// Never leave less than this much free space after a download.
 const int minFreeBytes = 2 * 1024 * 1024 * 1024;
@@ -84,7 +85,11 @@ class ModelSetup extends ChangeNotifier {
       final rt = SidecarRuntime.of(e.runtime, studio.settings);
       final req = rt.requiredFiles(m, f, v);
       final missing = [for (final x in req.entries) if (!File(x.value).existsSync()) x.key];
-      final need = missing.isEmpty ? 0 : (f.kind == 'files' ? _missingBytes(rt, m, f, v) : v.bytes);
+      final need = missing.isEmpty
+          ? 0
+          : (f.kind == 'files'
+              ? _missingBytes(rt, m, f, v)
+              : (rt is MlxRuntime ? _snapshotNeedBytes(rt, m, f, v) : v.bytes));
       status = SetupStatus(
         runtimeInstalled: rt.installed,
         missing: missing,
@@ -106,6 +111,21 @@ class ModelSetup extends ChangeNotifier {
       sum += x.bytes - (part.existsSync() ? part.lengthSync() : 0);
     }
     return sum;
+  }
+
+  /// Estimate for an hf-snapshot: the full size minus what is already on disk (a 0.4.4 install
+  /// being repaired keeps its files). Only verification left means nothing to download.
+  int _snapshotNeedBytes(MlxRuntime rt, ModelSpec m, ModelFormat f, ModelVariant v) {
+    var have = 0;
+    final dirs = rt.ownsModelDir(m, f) ? [rt.modelRoot(m, f)] : [rt.modelDir(m, f), rt.vaeDir(m, f)];
+    for (final d in dirs) {
+      final dir = Directory(d);
+      if (!dir.existsSync()) continue;
+      for (final e in dir.listSync(recursive: true, followLinks: false)) {
+        if (e is File && !e.path.contains('${p.separator}.cache${p.separator}')) have += e.lengthSync();
+      }
+    }
+    return (v.bytes - have).clamp(0, v.bytes);
   }
 
   void acceptLicence() {
@@ -144,7 +164,7 @@ class ModelSetup extends ChangeNotifier {
         final rt = SidecarRuntime.of(e.runtime, studio.settings);
         if (rt is MlxRuntime) {
           if (!rt.installed && !await _installMlx(rt, f)) return;
-          if ((await refresh()).missing.isNotEmpty && !await _downloadHfSnapshot(rt, m, f, v)) return;
+          if ((await refresh()).missing.isNotEmpty && !await _setupMlxModel(rt, m, f)) return;
         } else if (rt is Yue2CppRuntime) {
           if (!File(p.join(rt.binDir, 'yue-synth')).existsSync() && !await _buildYue2cpp(rt, f)) return;
           if (!File(rt.python()).existsSync() && !await _sidecarVenv()) return;
@@ -186,10 +206,24 @@ class ModelSetup extends ChangeNotifier {
 
   // ------------------------------------------------------------------ desktop steps
 
-  String? get _uv => AppPaths.which('uv');
+  String? _uv;
   String? get _git => AppPaths.which('git');
 
-  Future<bool> _run(String exe, List<String> args, {String? cwd, Map<String, String>? env}) async {
+  /// uv from the machine, or the app's own pinned copy (fetched once into the data dir).
+  Future<bool> _ensureUv() async {
+    if (_uv != null && File(_uv!).existsSync()) return true;
+    try {
+      _uv = await UvBootstrap(AppPaths.instance.dataDir).ensure(log: _log);
+      return true;
+    } catch (e) {
+      error = '$e';
+      _log(error!);
+      return false;
+    }
+  }
+
+  Future<bool> _run(String exe, List<String> args,
+      {String? cwd, Map<String, String>? env, bool Function(String line)? onLine}) async {
     if (_cancel) return false;
     _log('\$ $exe ${args.join(' ')}${cwd != null ? '   (in $cwd)' : ''}');
     final proc = await Process.start(exe, args, workingDirectory: cwd, environment: env);
@@ -200,7 +234,9 @@ class ModelSetup extends ChangeNotifier {
       if (--open == 0) done.complete();
     }
 
-    proc.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(_log, onDone: closed);
+    proc.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
+      if (onLine == null || !onLine(line)) _log(line);
+    }, onDone: closed);
     proc.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(_log, onDone: closed);
     final code = await proc.exitCode;
     await done.future;
@@ -209,14 +245,11 @@ class ModelSetup extends ChangeNotifier {
     return code == 0;
   }
 
-  bool _tools({bool uv = true}) {
+  bool _tools() {
     if (_git == null) {
-      error = 'git not found. Install git with your system package manager, then retry.';
-      _log(error!);
-      return false;
-    }
-    if (uv && _uv == null) {
-      error = 'uv not found. Install it from https://docs.astral.sh/uv/ (it installs into ~/.local/bin).';
+      error = Platform.isMacOS
+          ? 'git not found. Run `xcode-select --install` in Terminal, then retry.'
+          : 'git not found. Install git with your system package manager, then retry.';
       _log(error!);
       return false;
     }
@@ -248,7 +281,7 @@ class ModelSetup extends ChangeNotifier {
   }
 
   Future<bool> _installMlx(MlxRuntime rt, ModelFormat f) async {
-    if (!_tools()) return false;
+    if (!_tools() || !await _ensureUv()) return false;
     if (!await _checkDisk(2 * 1024 * 1024 * 1024)) return false;
     task = 'Installing ${f.runtime['name'] ?? 'the engine'}';
     notifyListeners();
@@ -257,24 +290,59 @@ class ModelSetup extends ChangeNotifier {
     return _run(_uv!, ['sync', '--frozen', '--no-dev'], cwd: dir, env: {'UV_PYTHON_PREFERENCE': 'managed'});
   }
 
-  Future<bool> _downloadHfSnapshot(MlxRuntime rt, ModelSpec m, ModelFormat f, ModelVariant v) async {
-    if (!await _checkDisk(v.bytes)) return false;
-    task = 'Downloading ${m.name} (${v.name})';
+  /// Lay out, repair, download and verify the mlx-Yue model folder (sidecar `mlx_setup`, run in the
+  /// mlx-Yue venv). A 0.4.4 install (vae/ inside, a .cache tree, one AR precision) is fixed in place
+  /// and only the missing files are fetched. Ends with mlx-Yue's own verify_conversion, so a bad
+  /// folder shows up here instead of on Record.
+  Future<bool> _setupMlxModel(MlxRuntime rt, ModelSpec m, ModelFormat f) async {
+    task = 'Downloading ${m.name}';
     notifyListeners();
-    final dest = AppPaths.instance.modelDir(m.id, f.id);
-    await Directory(dest).create(recursive: true);
-    final script = 'from huggingface_hub import snapshot_download\n'
-        'snapshot_download(repo_id=${jsonEncode(f.repo)}, local_dir=${jsonEncode(dest)}, '
-        'allow_patterns=${jsonEncode(v.patterns)})\n';
-    return _run(rt.python(), ['-c', script], cwd: rt.engineDir);
+    final src = await SidecarProcess.extractSidecar();
+    final userDir = studio.settings.runtime('mlx.modelDir').isNotEmpty;
+    final args = userDir
+        ? ['-m', 'studio_engine.mlx_setup', '--verify-only', '--model-dir', rt.modelDir(m, f), '--vae-dir', rt.vaeDir(m, f)]
+        : [
+            '-m', 'studio_engine.mlx_setup', '--repo', f.repo, '--revision', f.revision,
+            '--root', rt.modelRoot(m, f), '--model-name', MlxRuntime.modelName(f),
+          ];
+    String? failure;
+    final ok = await _run(rt.python(), args, cwd: rt.engineDir, env: {
+      'PYTHONPATH': src,
+      'PYTHONUNBUFFERED': '1',
+      'PYTHONNOUSERSITE': '1',
+      'MLX_ENABLE_TF32': '0',
+    }, onLine: (line) {
+      if (line.startsWith('@progress ')) {
+        final e = jsonDecode(line.substring(10)) as Map<String, dynamic>;
+        final done = (e['done'] as num).toInt(), total = (e['total'] as num).toInt();
+        progress = total > 0 ? done / total : null;
+        progressText = '${e['file']}: ${formatBytes(done)} of ${formatBytes(total)}';
+        notifyListeners();
+        return true;
+      }
+      if (line.startsWith('@result ')) {
+        final r = jsonDecode(line.substring(8)) as Map<String, dynamic>;
+        if (r['ok'] != true) failure = r['error'] as String?;
+        return true;
+      }
+      if (line.startsWith('Checking the model folder')) {
+        task = 'Verifying ${m.name}';
+        progress = null;
+        progressText = '';
+        notifyListeners();
+      }
+      return false;
+    });
+    if (!ok) error = failure ?? 'Model setup failed. See the log.';
+    return ok;
   }
 
   Future<bool> _sidecarVenv() async {
-    if (_uv == null) return _tools();
+    if (!await _ensureUv()) return false;
     task = 'Creating the engine environment';
     notifyListeners();
     final src = await SidecarProcess.extractSidecar();
-    return _run(_uv!, ['sync', '--frozen', '--no-dev', '--no-install-project'],
+    return _run(_uv!, ['sync', '--frozen', '--no-dev', '--no-install-project', '--python', '3.12'],
         cwd: src, env: {'UV_PROJECT_ENVIRONMENT': AppPaths.instance.sidecarVenv});
   }
 
@@ -286,7 +354,7 @@ class ModelSetup extends ChangeNotifier {
   }
 
   Future<bool> _buildYue2cpp(Yue2CppRuntime rt, ModelFormat f) async {
-    if (!_tools(uv: false)) return false;
+    if (!_tools()) return false;
     if (AppPaths.which('cmake') == null) {
       error = 'cmake not found. Install cmake and a C++ compiler with your package manager.';
       _log(error!);

@@ -80,7 +80,7 @@ class _SetupScreenState extends State<SetupScreen> {
           ? 'START'
           : (st.missing.isEmpty
                 ? 'INSTALL ${(f.runtime['name'] ?? 'ENGINE').toString().toUpperCase()}'
-                : 'DOWNLOAD ${formatBytes(st.needBytes)}');
+                : (st.needBytes > 0 ? 'DOWNLOAD ${formatBytes(st.needBytes)}' : 'CHECK FILES'));
       final primaryEnabled = accepted && !setup.running;
       body = [
         section('Model', [
@@ -214,7 +214,8 @@ class _SetupScreenState extends State<SetupScreen> {
                     ? 'Installed'
                     : [
                         if (!st.runtimeInstalled) '${f.runtime['name'] ?? 'engine'} to install',
-                        if (st.missing.isNotEmpty) '${formatBytes(st.needBytes)} to download',
+                        if (st.missing.isNotEmpty)
+                          st.needBytes > 0 ? '${formatBytes(st.needBytes)} to download' : 'files to check',
                       ].join(' · ')) +
                 (st.freeBytes != null ? ' · ${formatBytes(st.freeBytes!)} free' : ''),
             style: SleeveType.etched(u, size: 12, color: st.ready ? Sleeve.ink : Sleeve.inkSoft),
