@@ -17,6 +17,7 @@ Library stdout is redirected to stderr so that stdout carries only protocol line
 """
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import os
 import platform
@@ -38,7 +39,10 @@ class Server:
         self._lock = threading.Lock()
         self.backend = None
         self.backend_name = None
-        self._job = None  # (job_id, cancel_event, thread)
+        self._job = None  # (job_id, cancel_event, done_event)
+        # lyra's GPU lock belongs to the thread that loaded the pipeline, and the pipeline stays
+        # resident between jobs, so every backend call runs on this one thread.
+        self._gpu = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="gpu")
         self._job_started = 0.0
         self._last_cfg = None
 
@@ -103,7 +107,7 @@ class Server:
         if self.backend is not None and cfg == self._last_cfg:
             return {"backend": self.backend_name, "unchanged": True}
         if self.backend is not None:
-            self.backend.unload()
+            self._gpu.submit(self.backend.unload).result()
         self.backend = self._make_backend(cfg)
         self.backend_name = self.backend.name
         self._last_cfg = cfg
@@ -123,13 +127,13 @@ class Server:
     def cmd_doctor(self, msg):
         if self._busy():
             raise RuntimeError("busy")
-        return self._need_backend().doctor()
+        return self._gpu.submit(self._need_backend().doctor).result()
 
     def cmd_unload(self, msg):
         if self._busy():
             raise RuntimeError("busy")
         if self.backend:
-            self.backend.unload()
+            self._gpu.submit(self.backend.unload).result()
         return {"unloaded": True}
 
     def cmd_cancel(self, msg):
@@ -154,7 +158,7 @@ class Server:
     # jobs ----------------------------------------------------------------
 
     def _busy(self):
-        return self._job is not None and self._job[2].is_alive()
+        return self._job is not None and not self._job[2].is_set()
 
     def _start_job(self, msg, work):
         backend = self._need_backend()
@@ -162,6 +166,7 @@ class Server:
             raise RuntimeError("busy")
         job_id = msg.get("job") or msg["id"]
         cancel = threading.Event()
+        done = threading.Event()
 
         def run():
             self._job_started = time.monotonic()
@@ -176,10 +181,10 @@ class Server:
                 emit("job_failed", error=f"{type(error).__name__}: {error}", cancelled=cancel.is_set())
             finally:
                 self._job = None
+                done.set()
 
-        thread = threading.Thread(target=run, name=f"job-{job_id}", daemon=True)
-        self._job = (job_id, cancel, thread)
-        thread.start()
+        self._job = (job_id, cancel, done)
+        self._gpu.submit(run)
         return {"job": job_id, "accepted": True}
 
     def cmd_generate(self, msg):

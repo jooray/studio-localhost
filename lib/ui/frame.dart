@@ -173,6 +173,7 @@ class _IndexEntry extends StatelessWidget {
             SongStatus.done => formatDuration(song.seconds),
             SongStatus.running => 'REC',
             SongStatus.queued => 'QUEUED',
+            SongStatus.failed => 'FAILED',
             _ => 'STOPPED',
           }, style: SleeveType.etched(1, size: 11, color: running ? Sleeve.red : Sleeve.inkMute)),
         ]),

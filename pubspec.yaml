@@ -2,7 +2,7 @@ name: studio_localhost
 description: "Localhost Recording Studio: local music generation on your own hardware."
 publish_to: 'none'
 # One version for every platform (Android versionName/versionCode, macOS, Linux).
-version: 0.4.8+12
+version: 0.4.9+13
 
 environment:
   sdk: ^3.13.4
