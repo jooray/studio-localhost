@@ -59,6 +59,9 @@ class SidecarEngine extends Engine {
   bool get canTokenizeAudio => (_info?['capabilities'] as Map?)?['tokenize_audio'] == true;
 
   @override
+  bool get canCover => (_info?['capabilities'] as Map?)?['cover'] == true;
+
+  @override
   Future<void> warmUp() async {
     if (!runtime.installed) return;
     try {
@@ -72,6 +75,7 @@ class SidecarEngine extends Engine {
   Future<Map<String, dynamic>> info() async {
     await process.ensureConfigured();
     _info = await process.request('info');
+    notifyListeners();
     return _info!;
   }
 
@@ -99,6 +103,10 @@ class SidecarEngine extends Engine {
       case 'rerender':
         cmd = 'rerender';
         args['source_dir'] = ctx.sourceDir;
+      case 'cover':
+        cmd = 'cover';
+        args['source_audio'] = song.coverSourcePath;
+        if (song.meta['resume'] == true) args['resume'] = true;
       default:
         cmd = 'generate';
         if (song.meta['resume'] == true) args['resume'] = true;

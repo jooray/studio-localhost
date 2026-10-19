@@ -13,6 +13,7 @@ object Yue2Native {
     const val STAGE_NAR = 3
     const val STAGE_VAE = 4
     const val STAGE_WRITE = 5
+    const val STAGE_LISTEN = 6
 
     const val RESULT_OK = 0
     const val RESULT_CANCELLED = 1
@@ -42,6 +43,20 @@ object Yue2Native {
         listener: ProgressListener?,
     ): Int
 
+    /**
+     * A cover's first step: the score the transcriber hears in [audioPath], written to
+     * [jobDir]/cover.abc. [transcriberPath] is the SheetSage2 GGUF, MERT beside it.
+     */
+    @JvmStatic external fun transcribe(
+        jobDir: String,
+        transcriberPath: String,
+        audioPath: String,
+        melodyOnly: Boolean,
+        nThreads: Int,
+        cores: IntArray,
+        listener: ProgressListener?,
+    ): Int
+
     @JvmStatic external fun cancel()
     @JvmStatic external fun lastLogLine(): String
     @JvmStatic external fun systemInfo(): String
@@ -50,6 +65,7 @@ object Yue2Native {
     /** The app's stage names (shared with the desktop engines). */
     fun stageKey(stage: Int): String = when (stage) {
         STAGE_LOAD -> "load"
+        STAGE_LISTEN -> "listen"
         STAGE_SCORE -> "plan"
         STAGE_SEMANTIC -> "semantic"
         STAGE_NAR -> "nar"
@@ -59,6 +75,7 @@ object Yue2Native {
 
     fun stageLabel(stage: Int): String = when (stage) {
         STAGE_LOAD -> "Loading model"
+        STAGE_LISTEN -> "Listening"
         STAGE_SCORE -> "Planning score"
         STAGE_SEMANTIC -> "Generating song"
         STAGE_NAR -> "Synthesizing audio"

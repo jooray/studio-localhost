@@ -92,6 +92,10 @@ class Settings extends ChangeNotifier {
   }
 
   /// Set when the first-run setup finished (the setup flow stays reachable from Settings).
+  /// Quality presets were introduced: slow devices were moved to the sketch preset once.
+  bool get presetsIntroduced => _get('sketchDefaultApplied', false);
+  set presetsIntroduced(bool v) => set('sketchDefaultApplied', v);
+
   bool get setupComplete => _get('setupComplete', false);
   set setupComplete(bool v) => set('setupComplete', v);
 

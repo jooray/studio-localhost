@@ -10,6 +10,7 @@ import '../../core/library/envelopes.dart';
 import '../../core/library/song.dart';
 import '../../core/paths.dart';
 import '../../core/player.dart';
+import '../../state/generate_form.dart';
 import '../../state/library_view.dart';
 import '../../state/seeds.dart';
 import '../frame.dart';
@@ -282,7 +283,7 @@ class _Actions extends StatelessWidget {
       if (song.hasAudio) act(Platform.isAndroid ? Glyph.share : Glyph.share, Platform.isAndroid ? 'Share' : 'Export', () => _export(context, v, song)),
       if (v.canExtend(song)) act(Glyph.extend, 'Extend', () => openExtend(context, song)),
       if (song.style.isNotEmpty || song.lyrics.isNotEmpty) act(Glyph.reuse, 'Reuse', () => reuseSong(context, song)),
-      if (v.canRerender(song)) act(Glyph.rerender, 'Re-render', () => _rerender(context, v, song)),
+      if (v.canRerender(song)) act(Glyph.rerender, 'Re-render', () => showRerenderSheet(context, v, song)),
       if (song.resumable) act(Glyph.rerender, 'Resume', () => v.resume(song)),
       if (song.active) act(Glyph.close, 'Stop', () => v.cancel(song)),
       if (Platform.isMacOS || Platform.isLinux) act(Glyph.folder, 'Folder', () => AppPaths.reveal(song.audioPath ?? song.dir)),
@@ -333,10 +334,14 @@ Future<void> _export(BuildContext context, LibraryView v, Song song) async {
   }
 }
 
-Future<void> _rerender(BuildContext context, LibraryView v, Song song) async {
+Future<void> showRerenderSheet(BuildContext context, LibraryView v, Song song) async {
   final choices = v.studio.model?.limits.steps ?? const [32];
   var steps = song.steps == choices.last ? choices.first : choices.last;
   final seed = TextEditingController(text: '${randomSeed()}');
+  // A sketch with a saved mix is refined by default: a quarter of the final steps on top of it.
+  final canRefine = v.canRefine(song);
+  var refine = canRefine;
+  final refineSteps = (choices.last * LibraryView.refineT).round();
   final ok = await showModalBottomSheet<bool>(
     context: context,
     useSafeArea: true,
@@ -354,8 +359,40 @@ Future<void> _rerender(BuildContext context, LibraryView v, Song song) async {
               GlyphButton(Glyph.close, tooltip: 'Close', size: 18, onTap: () => Navigator.pop(ctx)),
             ]),
             const Rule(),
-            ChoiceRow<int>(label: 'Steps', values: choices, selected: steps, text: (s) => '$s', onSelect: (s) => set(() => steps = s)),
-            Row(children: [
+            if (canRefine) ...[
+              const SizedBox(height: 12),
+              Cell(
+                selected: refine,
+                frame: refine,
+                onTap: () => set(() => refine = true),
+                semanticLabel: 'Refine this mix, $refineSteps steps',
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                  Etched('Refine this mix', size: 13, color: refine ? Sleeve.ink : Sleeve.inkSoft, weight: FontWeight.w500),
+                  const SizedBox(height: 5),
+                  Etched(
+                    '$refineSteps steps · ${formatEstimate(v.queue.estimate(seconds: song.seconds, steps: refineSteps, precision: song.precision, compose: false))} · builds on this mix',
+                    size: 11,
+                    color: refine ? Sleeve.inkSoft : Sleeve.inkMute,
+                    maxLines: 2,
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 4),
+            ],
+            QualityRow(
+              choices: choices,
+              selected: refine ? -1 : steps,
+              preset: ctx.read<GenerateForm>().presetOf,
+              estimate: (s) => v.queue.estimate(seconds: song.seconds, steps: s, precision: song.precision, compose: false),
+              onSelect: (s) => set(() {
+                steps = s;
+                refine = false;
+              }),
+              note: 'Mixes again from scratch: same melody and words, a new sound.',
+            ),
+            if (!refine) Row(children: [
               const SizedBox(width: 120, child: Etched('Seed', size: 12, color: Sleeve.inkMute)),
               Expanded(child: SleeveField(controller: seed, style: SleeveType.value(1, size: 16), maxLines: 1, keyboardType: TextInputType.number)),
               GlyphButton(Glyph.dice, tooltip: 'New seed', size: 20, onTap: () => seed.text = '${randomSeed()}'),
@@ -369,7 +406,7 @@ Future<void> _rerender(BuildContext context, LibraryView v, Song song) async {
                 onTap: () => Navigator.pop(ctx, true),
                 alignment: Alignment.centerLeft,
                 padding: const EdgeInsets.only(left: 18),
-                child: Text('RE-RENDER ${Catalogue.format(v.library.catalogue.next)}', style: SleeveType.etched(1, size: 14, color: Sleeve.ink, weight: FontWeight.w500)),
+                child: Text('${refine ? 'REFINE' : 'RE-RENDER'} ${Catalogue.format(v.library.catalogue.next)}', style: SleeveType.etched(1, size: 14, color: Sleeve.ink, weight: FontWeight.w500)),
               ),
             ),
           ]),
@@ -378,6 +415,11 @@ Future<void> _rerender(BuildContext context, LibraryView v, Song song) async {
     ),
   );
   if (ok != true) return;
+  if (refine) {
+    await v.refine(song, steps: choices.last);
+    if (context.mounted) showLine(context, 'Refine queued');
+    return;
+  }
   await v.rerender(song, steps: steps, seed: int.tryParse(seed.text) ?? randomSeed());
   if (context.mounted) showLine(context, 'Re-render queued');
 }

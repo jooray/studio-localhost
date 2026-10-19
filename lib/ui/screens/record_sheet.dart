@@ -1,7 +1,12 @@
+import 'dart:io';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import '../../core/paths.dart';
+import '../../core/setup/model_setup.dart';
 import '../../core/studio.dart';
 import '../../state/generate_form.dart';
 import '../routes.dart';
@@ -27,7 +32,7 @@ class _RecordSheet extends StatelessWidget {
     final studio = context.watch<Studio>();
     final features = studio.model?.features;
     final u = (MediaQuery.sizeOf(context).width / 576).clamp(0.7, 1.0);
-    final planning = f.modes.isNotEmpty && !f.instrumental;
+    final planning = f.modes.isNotEmpty && !f.instrumental && !f.covering;
     return SleeveScale(
       u: u,
       child: ConstrainedBox(
@@ -59,11 +64,11 @@ class _RecordSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      ChoiceRow<int>(
-                        label: 'Steps',
-                        values: f.stepChoices,
+                      QualityRow(
+                        choices: f.stepChoices,
                         selected: f.steps,
-                        text: (v) => '$v',
+                        preset: f.presetOf,
+                        estimate: f.estimateFor,
                         onSelect: (v) => f.update(() => f.steps = v),
                       ),
                       if (f.precisions.isNotEmpty)
@@ -82,7 +87,8 @@ class _RecordSheet extends StatelessWidget {
                         text: (v) => '×$v',
                         onSelect: (v) => f.update(() => f.variants = v),
                       ),
-                      if (features?.instrumental ?? false)
+                      if (studio.coverAddon != null) _CoverRow(f),
+                      if ((features?.instrumental ?? false) && !f.covering)
                         ChoiceRow<bool>(
                           label: 'Vocals',
                           values: const [false, true],
@@ -149,6 +155,79 @@ class _RecordSheet extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Quality as presets over the step choices, each with its time on this device for the current
+/// length (the estimate learns from every finished song).
+class QualityRow extends StatelessWidget {
+  const QualityRow({
+    super.key,
+    required this.choices,
+    required this.selected,
+    required this.preset,
+    required this.estimate,
+    required this.onSelect,
+    this.note,
+  });
+
+  final List<int> choices;
+  final int selected;
+  final String? Function(int steps) preset;
+  final Duration Function(int steps) estimate;
+  final ValueChanged<int> onSelect;
+
+  /// A quiet line under the choices (what the time covers).
+  final String? note;
+
+  @override
+  Widget build(BuildContext context) {
+    final u = SleeveScale.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(top: 12 * u, bottom: 8 * u),
+          child: Etched('Quality', size: 12, color: Sleeve.inkMute),
+        ),
+        Row(
+          children: [
+            for (final v in choices)
+              Expanded(
+                child: Cell(
+                  selected: v == selected,
+                  frame: v == selected,
+                  onTap: () => onSelect(v),
+                  semanticLabel: '${preset(v) ?? '$v steps'}, $v steps, ${formatEstimate(estimate(v))}',
+                  minHeight: 64,
+                  padding: EdgeInsets.symmetric(horizontal: 6 * u, vertical: 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        (preset(v) ?? '$v steps').toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: SleeveType.etched(u, size: 13, color: v == selected ? Sleeve.ink : Sleeve.inkSoft, weight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        '$v · ${formatEstimate(estimate(v))}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: SleeveType.etched(u, size: 11, color: v == selected ? Sleeve.inkSoft : Sleeve.inkMute),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+        if (note != null) ...[SizedBox(height: 8 * u), Etched(note!, size: 11, color: Sleeve.inkMute, maxLines: 2)],
+        SizedBox(height: 10 * u),
+        const Rule(color: Sleeve.ruleFaint),
+      ],
     );
   }
 }
@@ -318,6 +397,109 @@ class _ScoreRow extends StatelessWidget {
                 semanticLabel: 'ABC score',
               ),
             ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Cover: the next song takes the tune of a recording (its score, transcribed by the engine)
+/// and sings these words over it. The transcriber is an optional download, offered here.
+class _CoverRow extends StatelessWidget {
+  const _CoverRow(this.f);
+  final GenerateForm f;
+
+  // yue2.cpp decodes these itself; the desktop engine goes through FFmpeg and takes more.
+  static List<String> get _extensions =>
+      Platform.isAndroid ? const ['mp3', 'wav', 'flac'] : const ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'aiff'];
+
+  Future<void> _pick(BuildContext context) async {
+    final file = await openFile(acceptedTypeGroups: [XTypeGroup(label: 'Audio', extensions: _extensions, uniformTypeIdentifiers: const ['public.audio'])]);
+    if (file == null || !context.mounted) return;
+    final ext = p.extension(file.path).replaceFirst('.', '').toLowerCase();
+    if (!_extensions.contains(ext)) {
+      showLine(context, 'Pick ${_extensions.take(_extensions.length - 1).map((e) => e.toUpperCase()).join(', ')} or ${_extensions.last.toUpperCase()}', error: true);
+      return;
+    }
+    f.update(() => f.coverPath = file.path);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final u = SleeveScale.of(context);
+    final studio = context.watch<Studio>();
+    final setup = context.watch<ModelSetup>();
+    final addon = studio.coverAddon!;
+    final ready = studio.coverReady;
+    final installing = setup.task != null && setup.task!.contains('transcri');
+    Widget cell(String text, {required bool on, VoidCallback? onTap, String? semantic}) => Cell(
+          selected: on,
+          frame: on,
+          onTap: onTap,
+          semanticLabel: semantic ?? text,
+          padding: EdgeInsets.symmetric(horizontal: 10 * u),
+          child: Text(text.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: SleeveType.etched(u, size: 13, color: on ? Sleeve.ink : Sleeve.inkMute)),
+        );
+    final String source;
+    VoidCallback? onSource;
+    if (f.covering) {
+      source = p.basename(f.coverPath!);
+      onSource = () => _pick(context);
+    } else if (ready) {
+      source = 'a recording…';
+      onSource = () => _pick(context);
+    } else if (installing) {
+      source = setup.progress == null ? 'installing…' : 'downloading ${(setup.progress! * 100).floor()}%';
+    } else {
+      source = 'add · ${formatBytes(addon.bytes)}';
+      onSource = setup.running ? null : () => setup.installCover();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 10 * u),
+          child: Row(
+            children: [
+              SizedBox(width: 120 * u, child: Etched('Cover', size: 12, color: Sleeve.inkMute)),
+              SizedBox(
+                width: 74 * u + 8,
+                height: 48,
+                child: cell('none', on: !f.covering, onTap: () => f.update(() => f.coverPath = null), semantic: 'No cover'),
+              ),
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: cell(source, on: f.covering, onTap: onSource,
+                      semantic: f.covering ? 'Cover of $source, pick another' : (ready ? 'Cover a recording' : 'Download the transcriber, ${formatBytes(addon.bytes)}')),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (!ready && !f.covering)
+          Padding(
+            padding: EdgeInsets.only(left: 120 * u, bottom: 10 * u),
+            child: Etched(
+              setup.error != null && !installing
+                  ? setup.error!
+                  : 'Sing new words to the tune of any song. Needs the transcriber, a one-time download.',
+              size: 11,
+              color: Sleeve.inkMute,
+              maxLines: 3,
+            ),
+          ),
+        const Rule(color: Sleeve.ruleFaint),
+        if (f.covering)
+          ChoiceRow<String>(
+            label: 'Keep',
+            values: const ['full', 'melody'],
+            selected: f.coverMode,
+            text: (v) => v == 'full' ? 'score' : 'melody',
+            onSelect: (v) => f.update(() => f.coverMode = v),
           ),
       ],
     );

@@ -110,8 +110,10 @@ class GenerationService : Service() {
         try {
             if (!job.backbone.exists() || !job.vae.exists()) {
                 error = "Model files are missing. Open Settings > Model setup."
+            } else if (job.needsTranscription && (job.transcriber?.exists() != true || job.coverSource?.exists() != true)) {
+                error = if (job.coverSource?.exists() != true) "The recording to cover is missing."
+                else "Covers need the transcriber. Download it from the Cover row in the recording settings."
             } else {
-                val request = job.prepare()
                 val cores = CpuInfo.bigCores.toIntArray()
                 var lastEvent = 0L
                 var lastNotif = 0L
@@ -140,8 +142,14 @@ class GenerationService : Service() {
                         }
                     }
                 }
-                result = Yue2Native.generate(
-                    job.work.absolutePath, job.backbone.absolutePath, job.vae.absolutePath, request,
+                if (job.needsTranscription) {
+                    result = Yue2Native.transcribe(
+                        job.work.absolutePath, job.transcriber!!.absolutePath, job.coverSource!!.absolutePath,
+                        job.coverMelodyOnly, cores.size, cores, listener,
+                    )
+                }
+                if (!job.needsTranscription) result = Yue2Native.generate(
+                    job.work.absolutePath, job.backbone.absolutePath, job.vae.absolutePath, job.prepare(),
                     cores.size, cores, job.maxSeq(), job.parentAudio, job.spliceAt, job.crossfade, listener,
                 )
             }

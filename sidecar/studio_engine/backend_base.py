@@ -34,7 +34,7 @@ class Backend:
             write_json(work / "request.json", request)
         write_tokens(work / "tokens.csv", codes)
 
-    # progress(stage, label, done, total, unit) -- stage in load|plan|semantic|nar|vae|post
+    # progress(stage, label, done, total, unit) -- stage in load|listen|plan|semantic|nar|vae|post
     def progress(self, stage: str, label: str, done=None, total=None, unit=None, **extra):
         self._emit(stage=stage, label=label, done=done, total=total, unit=unit, **extra)
 
@@ -43,7 +43,8 @@ class Backend:
 
     def capabilities(self) -> dict:
         return {"extend": True, "rerender": True, "tokenize_audio": False,
-                "tokenize_reason": "Not supported by this backend"}
+                "tokenize_reason": "Not supported by this backend",
+                "cover": False, "cover_reason": "Covers are not supported by this engine yet"}
 
     def generate(self, args: dict, out_dir, cancel: threading.Event) -> dict:
         raise NotImplementedError
@@ -58,6 +59,10 @@ class Backend:
 
     def tokenize_audio(self, path, cancel: threading.Event):
         raise RuntimeError(self.capabilities().get("tokenize_reason") or "Unsupported")
+
+    def transcribe(self, audio, mode, out_dir, cancel: threading.Event) -> str:
+        """The ABC score heard in a recording (a cover's score)."""
+        raise RuntimeError(self.capabilities().get("cover_reason") or "Unsupported")
 
     def unload(self):
         pass

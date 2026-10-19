@@ -134,11 +134,21 @@ class MLXBackend(Backend):
         mert = self.engine_dir / "models/hf-cache"
         present = (ra / "nar_lora.safetensors").exists() or any(ra.glob("*.safetensors")) if ra.is_dir() else False
         present = present and mert.is_dir()
-        return {"extend": True, "rerender": True, "tokenize_audio": bool(present),
+        cover = _transcriber_ready(self.hf_cache)
+        return {"extend": True, "rerender": True, "tokenize_audio": bool(present), "preview": True, "refine": True,
+                "cover": cover,
+                "cover_reason": None if cover else (
+                    "Covers need the SheetSage2 transcriber and its MERT-v2 parent (about 2.8 GB) "
+                    f"in {self.hf_cache}, and mlx-Yue's transcription extras."),
                 "tokenize_reason": None if present else (
                     "Extending external audio needs the RealAudio v4 tokenizer head "
                     f"({ra}) and MERT-v2 weights ({mert}), about 3 GB, which are not installed. "
                     "They are not downloaded automatically.")}
+
+    @property
+    def hf_cache(self) -> Path:
+        """The Hugging Face cache mlx-Yue's audio tools read (transcriber, MERT)."""
+        return self.engine_dir / "models/hf-cache"
 
     # ------------------------------------------------------------------ pipeline
 
@@ -187,19 +197,45 @@ class MLXBackend(Backend):
         from yue2.protocol import GenerationConfig
         pipe.generation_config = GenerationConfig(ode_steps=int(steps))
 
-    def _render(self, pipe, semantic, seed, cancel):
-        """NAR + VAE for a SemanticResult; returns (audio, latents, timing)."""
-        from lyra.pipeline import initial_noise
+    def _render(self, pipe, semantic, seed, cancel, start=None, start_t=1.0):
+        """NAR + VAE for a SemanticResult; returns (audio, latents, timing).
+
+        Partway through a long solve a preview goes to work/preview.flac. With `start`, the solve
+        refines those latents from `start_t` (see flow.solve)."""
+        from . import flow
         cancelled = self._cancel_fn(cancel)
-        noise = initial_noise(len(semantic.tokens), seed)
+        steps = pipe.generation_config.ode_steps
         t0 = time.perf_counter()
-        latents = pipe.synthesize(semantic, cancelled=cancelled, noise=noise)
+        with pipe._status("Synthesizing audio", unit="steps") as status:
+            def report(done, total):
+                pipe._check_execution()
+                status.update(done, total=total)
+
+            latents = flow.solve(pipe, semantic, seed, steps, cancelled=cancelled, on_progress=report,
+                                 preview_at=None if start is not None else flow.preview_step(steps),
+                                 on_preview=self._write_preview, start=start, start_t=start_t)
         nar_seconds = time.perf_counter() - t0
         if cancel.is_set():
             raise Cancelled()
         t1 = time.perf_counter()
         audio = pipe.decode(latents, cancelled=cancelled)
         return audio, latents, {"nar_seconds": nar_seconds, "vae_seconds": time.perf_counter() - t1}
+
+    def _write_preview(self, latents):
+        """Decode a mid-solve estimate to work/preview.flac without touching the stage progress."""
+        if self.work_dir is None:
+            return
+        import soundfile as sf
+        from lyra.vae import load_decoder
+        pipe = self._pipe
+        if pipe._vae is None:
+            pipe._vae = load_decoder(pipe.vae_dir)
+        audio = np.clip(pipe._vae.decode(latents, full=False, core_frames=pipe.vae_core_frames), -1, 1)
+        work = Path(self.work_dir)
+        work.mkdir(parents=True, exist_ok=True)
+        tmp = work / "preview.tmp.flac"
+        sf.write(tmp, audio.T if audio.ndim == 2 and audio.shape[0] == 2 else audio, SAMPLE_RATE, subtype="PCM_16")
+        tmp.replace(work / "preview.flac")
 
     def _run(self, fn):
         try:
@@ -221,6 +257,40 @@ class MLXBackend(Backend):
                                converted_dir=self.engine_dir / "models/realaudio-v4/converted")
         tokens, _meta = ra.tokenize_audio(path)
         return [int(t) for t in tokens]
+
+    def transcribe(self, audio, mode, out_dir, cancel):
+        """The score SheetSage2 hears in a recording (ABC). mode full keeps the chords and the
+        melody, melody only the melody. The transcriber is freed again afterwards."""
+        caps = self.capabilities()
+        if not caps["cover"]:
+            raise RuntimeError(caps["cover_reason"])
+        import gc
+        import shutil
+
+        import mlx.core as mx
+        from lyra.transcription.pipeline import transcribe
+        out_dir = Path(out_dir)
+        shutil.rmtree(out_dir, ignore_errors=True)
+        self.progress("listen", "Listening", 0, None, "windows")
+
+        def progress(event):
+            if event.get("stage") == "encoding":
+                self.progress("listen", "Listening", event["window"] - 1, event["windows"], "windows")
+
+        try:
+            result = self._run(lambda: transcribe(
+                audio, out_dir, offline=True, cache_dir=str(self.hf_cache),
+                task="full" if mode == "full" else "melody-full", cancelled=cancel.is_set, progress=progress))
+        finally:
+            gc.collect()
+            mx.clear_cache()
+        if cancel.is_set():
+            raise Cancelled()
+        score = out_dir / "score.abc"
+        if result.get("status") != "complete" or result.get("truncated") or not score.is_file():
+            raise ValueError("The recording could not be transcribed completely; no score to cover")
+        self.progress("listen", "Listening", 1, 1, "windows")
+        return score.read_text(encoding="utf-8")
 
     def generate(self, args, out_dir, cancel):
         return self._run(lambda: self._generate(args, cancel))
@@ -286,7 +356,15 @@ class MLXBackend(Backend):
         codes = [int(c) for c in source["codes"]]
         semantic = SemanticResult(plan, codes, {"reused_source_semantic": True}, False)
         start = time.perf_counter()
-        audio, latents, render_timing = self._render(pipe, semantic, request.seed, cancel)
+        begin, begin_t = None, 1.0
+        if args.get("refine"):
+            # Refine a finished mix: its latents, pulled back to refine_t on the path from its own noise.
+            from . import flow
+            begin, info = flow.read_latents(Path(source["dir"]) / "work")
+            if int(info["seed"]) != request.seed:
+                raise ValueError("Refining needs the source's seed")
+            begin_t = float(args.get("refine_t") or 0.25)
+        audio, latents, render_timing = self._render(pipe, semantic, request.seed, cancel, begin, begin_t)
         timing = {"abc": plan.timing, "semantic": semantic.timing, **render_timing,
                   "load": dict(pipe.load_timing), "e2e_seconds": time.perf_counter() - start}
         return {"audio": audio, "codes": codes, "abc": plan.abc, "request": request.to_dict(),
@@ -337,6 +415,18 @@ class MLXBackend(Backend):
                 "config": config, "timing": timing, "latents": latents,
                 "truncated": {"abc": bool(plan.truncated), "semantic": bool(truncated)},
                 "new_frames": len(new_codes)}
+
+
+def _transcriber_ready(cache: Path) -> bool:
+    """Transcription extras importable and both checkpoints cached (no network)."""
+    try:
+        import importlib
+        importlib.invalidate_caches()  # the extras may have been installed while this ran
+        import pretty_midi  # noqa: F401
+        from ..cover_setup import present
+        return present(cache)
+    except Exception:
+        return False
 
 
 def _weights(model_dir: Path, vae_dir: Path):

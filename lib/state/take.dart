@@ -148,6 +148,24 @@ class TakeState extends ChangeNotifier {
     }
   }
 
+  /// What the sheet's words are to the shown song: its record, or the prompt of a song still
+  /// being made (with the time left while it records).
+  String sheetNote(Song s) {
+    switch (s.status) {
+      case SongStatus.running:
+        final j = queue.live[s.id];
+        final word = s.previewPath != null ? 'preview ready' : 'recording';
+        if (j?.eta == null) return word;
+        return '$word · ${j!.etaUpperBound ? '≤' : '≈'}${formatDuration(j.eta!.inSeconds)} left';
+      case SongStatus.queued:
+        return 'queued';
+      case SongStatus.done:
+        return 'as recorded';
+      default:
+        return 'stopped';
+    }
+  }
+
   /// The title that leads the status line when a finished song is shown (idle, playing).
   String? get lead {
     final s = current;
@@ -164,6 +182,7 @@ class TakeState extends ChangeNotifier {
 
   static String _stageWord(String stage) => switch (stage) {
         'load' => 'WARMING UP',
+        'listen' => 'LISTENING',
         'plan' => 'SCORING',
         'semantic' => 'RECORDING',
         'nar' => 'MIXING',
@@ -196,7 +215,7 @@ class TakeState extends ChangeNotifier {
     final j = live;
     if (j == null) return 0;
     if (j.stage == 'semantic') return j.fraction ?? 0;
-    return const {'load': 0.0, 'plan': 0.02}[j.stage] ?? 1.0;
+    return const {'load': 0.0, 'listen': 0.0, 'plan': 0.02}[j.stage] ?? 1.0;
   }
 
   /// The plot data: the current song's envelope, or for a running extend/re-render its source.

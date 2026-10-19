@@ -174,6 +174,64 @@ class ModelSetup extends ChangeNotifier {
         if (live is SidecarEngine) await live.process.stop();
       });
 
+  /// Download what covers need on top of the model (an add-on: offered, never part of setup).
+  /// Android: the transcriber GGUFs beside the model. MLX: mlx-Yue's transcription extras and
+  /// the SheetSage2 + MERT-v2 checkpoints in the engine's Hugging Face cache.
+  Future<void> installCover() => _guard('Setting up covers', () async {
+        final m = model!, f = studio.format!, e = engine!;
+        final a = f.addon('cover');
+        if (a == null) throw StateError('Covers are not available for this engine.');
+        if (Platform.isAndroid) {
+          await AndroidBridge.call('requestNotifications');
+          _androidDownload = Completer<void>();
+          task = 'Downloading the transcriber';
+          notifyListeners();
+          await AndroidBridge.call('download', {'dir': AppPaths.instance.modelDir(m.id, f.id), 'files': [for (final x in a.files) x.toJson()]});
+          await _androidDownload!.future;
+          return;
+        }
+        final rt = SidecarRuntime.of(e.runtime, studio.settings);
+        if (rt is! MlxRuntime) throw StateError('Covers are not supported by this engine yet.');
+        if (!await _ensureUv() || !await _checkDisk(a.bytes)) return;
+        task = 'Installing the transcription tools';
+        notifyListeners();
+        // --inexact: a folder the user brought keeps whatever else its venv holds.
+        if (!await _run(_uv!, ['sync', '--frozen', '--no-dev', '--inexact', '--extra', 'transcription'],
+            cwd: rt.engineDir, env: {'UV_PYTHON_PREFERENCE': 'managed'})) {
+          error ??= 'Could not install the transcription tools. See the log.';
+          return;
+        }
+        task = 'Downloading the transcriber';
+        notifyListeners();
+        final src = await SidecarProcess.extractSidecar();
+        String? failure;
+        final ok = await _run(rt.python(), ['-m', 'studio_engine.cover_setup', '--cache-dir', p.join(rt.engineDir, 'models', 'hf-cache')],
+            cwd: rt.engineDir,
+            env: {'PYTHONPATH': src, 'PYTHONUNBUFFERED': '1', 'PYTHONNOUSERSITE': '1'}, onLine: (line) {
+          if (line.startsWith('@progress ')) {
+            final x = jsonDecode(line.substring(10)) as Map<String, dynamic>;
+            final done = (x['done'] as num).toInt(), total = (x['total'] as num).toInt();
+            progress = total > 0 ? done / total : null;
+            progressText = '${x['file']}: ${formatBytes(done)} of ${formatBytes(total)}';
+            notifyListeners();
+            return true;
+          }
+          if (line.startsWith('@result ')) {
+            final r = jsonDecode(line.substring(8)) as Map<String, dynamic>;
+            if (r['ok'] != true) failure = r['error'] as String?;
+            return true;
+          }
+          return false;
+        });
+        if (!ok) {
+          error = failure ?? 'The transcriber download failed. See the log.';
+          return;
+        }
+        // Ask the engine again what it can do (it answers while a song runs, too).
+        final live = studio.engine;
+        if (live is SidecarEngine) await live.info();
+      });
+
   /// Use an existing runtime checkout (e.g. an mlx-Yue folder with its .venv and weights).
   Future<void> useExistingRuntime(String dir) async {
     final e = engine;

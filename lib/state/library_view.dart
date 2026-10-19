@@ -43,6 +43,24 @@ class LibraryView extends ChangeNotifier {
     return lic == null ? name : '$name · $lic';
   }
 
+  /// Refine a finished mix: its saved latents pulled back a quarter of the way to noise, then the
+  /// rest of a [steps] schedule (a quarter of the steps). Same seed: the path starts from the
+  /// song's own noise.
+  Future<void> refine(Song s, {required int steps}) => queue.submit(
+        '${library.titleOf(s).replaceAll(RegExp(r' \((extended|re-render|refined)\)$'), '')} (refined)',
+        {
+          'kind': 'rerender',
+          'title_user': library.hasUserTitle(s),
+          'parent': s.id,
+          'source_dir': s.dir,
+          'params': {...s.params, 'steps': steps, 'refine': true, 'refine_t': refineT},
+        },
+      );
+
+  static const refineT = 0.25;
+
+  bool canRefine(Song s) => canRerender(s) && s.hasLatents && (s.steps ?? 32) < (studio.model?.limits.steps.last ?? 32);
+
   Future<void> rerender(Song s, {required int steps, required int seed}) => queue.submit(
         '${library.titleOf(s).replaceAll(RegExp(r' \((extended|re-render)\)$'), '')} (re-render)',
         {
@@ -54,6 +72,7 @@ class LibraryView extends ChangeNotifier {
             ...s.params,
             'seed': seed,
             'steps': steps,
+            'refine': false,
           },
         },
       );

@@ -16,16 +16,17 @@ SongStatus parseStatus(String? s) =>
 ///
 /// ```
 /// { "format": "studio-localhost/song", "version": 1,
-///   "id", "title", "created", "kind": "generate|extend|rerender", "status", "error",
+///   "id", "title", "created", "kind": "generate|extend|rerender|cover", "status", "error",
 ///   "queued_at", "resume",
 ///   "model": {"id", "licence", "format", "variant"}, "engine": {"id", "app_version"},
 ///   "params": {"style", "lyrics", "instrumental", "mode", "seed", "steps", "precision",
 ///              "max_seconds", "abc"},
 ///   "parent", "source_dir",
 ///   "extend": {"section_start", "section_end", "add_seconds", "crossfade"},
+///   "cover": {"source_audio" (relative to the folder), "source_name", "transcriber"},
 ///   "audio": "audio.flac|audio.mp3", "render", "audio_seconds", "token_frames",
 ///   "truncated": {"abc", "semantic"}, "section", "seam",
-///   "timing": {"total_seconds", "stages": {"load", "plan", "semantic", "nar", "vae", "post"}},
+///   "timing": {"total_seconds", "stages": {"load", "listen", "plan", "semantic", "nar", "vae", "post"}},
 ///   "engine_timing": {...} }
 /// ```
 /// Next to it: audio, render (extend), tokens.csv (whole timeline), score.abc, work/ (checkpoints).
@@ -112,6 +113,37 @@ class Song {
       _file(meta['audio'] as String?) ?? _file('audio.flac') ?? _file('audio.mp3') ?? _file('audio.wav');
   String? get renderPath => _file(meta['render'] as String?);
   bool get hasAudio => audioPath != null;
+
+  /// The finished mix is saved (work/latents.f32), so the song can be refined without mixing
+  /// from scratch.
+  bool get hasLatents => File(p.join(dir, 'work', 'latents.f32')).existsSync();
+
+  /// The song's stream is already composed (a stopped job resumes without composing again).
+  bool get composed => File(p.join(dir, 'work', 'tokens.csv')).existsSync();
+
+  /// A refine job: only the tail of the step schedule runs.
+  bool get refine => params['refine'] == true;
+
+  /// Flow-matching steps the engine actually runs (a refine runs the tail of its schedule).
+  int get solveSteps {
+    final s = steps ?? 32;
+    if (!refine) return s;
+    final t = (params['refine_t'] as num?)?.toDouble() ?? 0.25;
+    return (t * s).round().clamp(1, s);
+  }
+
+  /// A cover: the recording it was transcribed from ({source_audio, source_name, transcriber}).
+  Map<String, dynamic> get cover => _map('cover');
+
+  /// The recording a cover listens to (its copy in the song folder).
+  String? get coverSourcePath {
+    final s = cover['source_audio'] as String?;
+    if (s == null) return null;
+    return p.isAbsolute(s) ? s : p.join(dir, s);
+  }
+
+  /// A preview of the song while it is still mixing (written by the engine partway through).
+  String? get previewPath => _file('work/preview.flac') ?? _file('work/preview.wav');
 
   /// The song's token stream exists, so it can be re-rendered and extended.
   bool get hasTokens => File(p.join(dir, 'tokens.csv')).existsSync() || File(p.join(dir, 'semantic.npy')).existsSync();

@@ -93,6 +93,7 @@ class Envelopes extends ChangeNotifier {
       } catch (_) {}
     }
     final tmp = p.join(AppPaths.instance.dataDir, 'cache', 'envelope-src.wav');
+    await Directory(p.dirname(tmp)).create(recursive: true);
     try {
       if (Platform.isAndroid) {
         await AndroidBridge.call('convertAudio', {'src': audio, 'dst': tmp});

@@ -9,6 +9,8 @@
 //   tokens.csv           the complete semantic stream
 //   song.mp3 / song.json the audio and its replay request
 //   engine.log           everything the engine printed on stderr
+// A cover first runs transcribe() on the same directory: the recording to the
+// score SheetSage2 hears in it (cover.abc), which the song then takes as its abc.
 // A run started on a directory that already holds checkpoints resumes from
 // them: a complete stream replays (no AR at all), a partial stream continues
 // (the AR writes on from where it stopped), a score skips the planning stage.
@@ -93,6 +95,7 @@ enum Stage {
     STAGE_NAR      = 3,
     STAGE_VAE      = 4,
     STAGE_WRITE    = 5,
+    STAGE_LISTEN   = 6,  // a cover's recording through the transcriber
 };
 
 static std::atomic<bool> g_cancel{ false };
@@ -195,6 +198,7 @@ struct JobCtx {
     std::vector<int> base;          // codec values already in hand (continued run)
     int              total_frames;  // the semantic budget in frames
     int              last_saved;
+    int              song_frames;   // the whole semantic stream, once known
 };
 
 static void report(JobCtx * c, int stage, int cur, int total) {
@@ -239,6 +243,7 @@ static void hook_ar(void * user, int phase, int step, int max_tokens, const std:
     }
     int have = (int) (c->base.size() + tokens->size());
     if (step < 0) {
+        c->song_frames = have;
         if (!write_atomic(c->dir + "/tokens.csv", tokens_csv(c->base, *tokens))) {
             LOGE("cannot write token checkpoint");
         }
@@ -261,6 +266,45 @@ static void hook_nar(void * user, int step, int steps) {
 
 static void hook_vae(void * user, int tile, int tiles) {
     report((JobCtx *) user, STAGE_VAE, tile, tiles);
+}
+
+// A preview partway through flow matching: the guessed clean latents of the whole song through a
+// VAE of its own (the store holds the NAR and would refuse a second model group), written to
+// preview.wav next to the checkpoints. Songs solved in several chunks get none.
+static bool is_cancelled(void *);
+
+static void hook_preview(void * user, const float * latents, int frames) {
+    JobCtx * c = (JobCtx *) user;
+    if (frames != c->song_frames) {
+        return;
+    }
+    Timer   t;
+    VAEGGML vae;
+    vae_ggml_load(&vae, c->pipeline->vae_path.c_str());
+    std::vector<float> audio;
+    int                T_audio = 0;
+    bool ok = pipeline_decode(c->pipeline, &vae, latents, frames, &audio, &T_audio, is_cancelled, nullptr);
+    vae_ggml_free(&vae);
+    if (!ok || T_audio <= 0) {
+        fprintf(stderr, "[JNI] Preview decode failed\n");
+        return;
+    }
+    std::string tmp = c->dir + "/preview.tmp.wav";
+    if (audio_write(tmp.c_str(), audio.data(), T_audio, YUE2_SAMPLE_RATE, false, WAV_S16, 0, 0)) {
+        rename(tmp.c_str(), (c->dir + "/preview.wav").c_str());
+        fprintf(stderr, "[JNI] Preview: %.1f s of audio in %.1f s\n", (float) T_audio / YUE2_SAMPLE_RATE,
+                t.ms() / 1000.0);
+    }
+}
+
+// work/latents.f32 (float32 little-endian, frames x 64) and latents.json: the finished mix, so it
+// can be refined later without mixing from scratch. Same layout as the desktop engine.
+static void write_latents(const std::string & dir, const Yue2Song & song, int steps, long long seed) {
+    std::string bin((const char *) song.latents.data(), song.latents.size() * sizeof(float));
+    write_atomic(dir + "/latents.f32", bin);
+    write_atomic(dir + "/latents.json", "{\"frames\": " + std::to_string(song.T_lat) + ", \"dim\": " +
+                                            std::to_string(YUE2_LATENT_DIM) + ", \"steps\": " +
+                                            std::to_string(steps) + ", \"seed\": " + std::to_string(seed) + "}");
 }
 
 static bool is_cancelled(void *) {
@@ -353,6 +397,7 @@ extern "C" JNIEXPORT jint JNICALL Java_io_github_jooray_localhoststudio_yue2_Yue
         return finish(-1);
     }
     request_resolve_seed(&r);
+    const bool extend_job = !r.source_tokens.empty();
     r.lm_batch_size    = 1;
     r.synth_batch_size = 1;
 
@@ -390,6 +435,10 @@ extern "C" JNIEXPORT jint JNICALL Java_io_github_jooray_localhoststudio_yue2_Yue
         r.source_tokens = "";
         ctx.base.clear();
         r.semantic_tokens = trim(tokens);
+        std::vector<int> values;
+        if (pipeline_parse_tokens(r.semantic_tokens, &values)) {
+            ctx.song_frames = (int) values.size();
+        }
         fprintf(stderr, "[JNI] Resume: complete semantic stream, replaying\n");
     } else if (has_part && (has_score || cot_off)) {
         std::vector<int> values;
@@ -432,6 +481,37 @@ extern "C" JNIEXPORT jint JNICALL Java_io_github_jooray_localhoststudio_yue2_Yue
     g_yue2_hooks.nar_step = hook_nar;
     g_yue2_hooks.vae_tile = hook_vae;
     g_yue2_hooks.user     = &ctx;
+
+    // Refine: refine.f32 (the source mix's latents) and refine.json ({"t": 0.25}) in the job dir
+    std::vector<float> refine;
+    std::string        refine_bin, refine_info;
+    if (read_file(dir + "/refine.f32", &refine_bin) && read_file(dir + "/refine.json", &refine_info)) {
+        refine.resize(refine_bin.size() / sizeof(float));
+        memcpy(refine.data(), refine_bin.data(), refine.size() * sizeof(float));
+        float  t   = 0.25f;
+        size_t pos = refine_info.find("\"t\"");
+        if (pos != std::string::npos) {
+            t = strtof(refine_info.c_str() + refine_info.find(':', pos) + 1, nullptr);
+        }
+        const int frames = (int) (refine.size() / YUE2_LATENT_DIM);
+        if (frames == ctx.song_frames && t > 0.0f && t < 1.0f) {
+            g_yue2_hooks.refine_latents = refine.data();
+            g_yue2_hooks.refine_frames  = frames;
+            g_yue2_hooks.refine_t       = t;
+            fprintf(stderr, "[JNI] Refine: %d frames from t=%.2f (%d of %d steps)\n", frames, t,
+                    yue2_solve_steps(r.steps), r.steps);
+        } else {
+            fprintf(stderr, "[JNI] FATAL: refine latents have %d frames, the song %d\n", frames, ctx.song_frames);
+            pipeline_free(&pipeline);
+            store_free(store);
+            g_yue2_hooks = Yue2Hooks{};
+            return finish(-1);
+        }
+    } else if (!extend_job && r.steps >= 16) {
+        // A quarter of the way into a long mix, a preview to judge the song by
+        g_yue2_hooks.nar_preview  = hook_preview;
+        g_yue2_hooks.preview_step = r.steps / 4;
+    }
 
     std::vector<Yue2Song> songs;
     bool                  ok = pipeline_generate(&pipeline, r, &songs, is_cancelled, nullptr);
@@ -517,11 +597,99 @@ extern "C" JNIEXPORT jint JNICALL Java_io_github_jooray_localhoststudio_yue2_Yue
     if (!song.score.empty()) {
         write_atomic(dir + "/score.abc", song.score);
     }
+    if (!extend_job && parent.empty()) {
+        write_latents(dir, song, r.steps, (long long) r.seed);
+    }
+    unlink((dir + "/preview.wav").c_str());
     Yue2Request replay = request_replay(r, song.score.empty() ? r.abc : song.score, stream, 0, 0);
     write_atomic(dir + "/song.json", request_to_json(&replay) + "\n");
     fprintf(stderr, "[JNI] Done: %.1f s of audio -> %s\n", (float) song.T_audio / (float) YUE2_SAMPLE_RATE,
             out.c_str());
     report(&ctx, STAGE_WRITE, 1, 1);
+    return finish(0);
+}
+
+// A recording to its ABC score (SheetSage2, MERT beside the transcriber GGUF),
+// written to <dir>/cover.abc. melody_only drops the chord symbols.
+extern "C" JNIEXPORT jint JNICALL Java_io_github_jooray_localhoststudio_yue2_Yue2Native_transcribe(JNIEnv *  env,
+                                                                                                 jclass,
+                                                                                                 jstring   j_dir,
+                                                                                                 jstring   j_model,
+                                                                                                 jstring   j_audio,
+                                                                                                 jboolean  melody_only,
+                                                                                                 jint      n_threads,
+                                                                                                 jintArray cores,
+                                                                                                 jobject   listener) {
+    bool expected = false;
+    if (!g_running.compare_exchange_strong(expected, true)) {
+        return -2;  // busy
+    }
+    g_cancel = false;
+    start_stderr_capture();
+    auto jstr = [env](jstring s) {
+        const char * c = env->GetStringUTFChars(s, nullptr);
+        std::string  r(c);
+        env->ReleaseStringUTFChars(s, c);
+        return r;
+    };
+    std::string dir   = jstr(j_dir);
+    std::string model = jstr(j_model);
+    std::string audio = jstr(j_audio);
+    {
+        std::lock_guard<std::mutex> lock(g_log_mutex);
+        g_log_file = fopen((dir + "/engine.log").c_str(), "a");
+    }
+    auto finish = [&](int code) {
+        fflush(stderr);
+        usleep(200 * 1000);  // let the reader thread drain the pipe
+        std::lock_guard<std::mutex> lock(g_log_mutex);
+        if (g_log_file) {
+            fclose(g_log_file);
+            g_log_file = nullptr;
+        }
+        g_running = false;
+        return code;
+    };
+    JobCtx ctx      = {};
+    ctx.env         = env;
+    ctx.listener    = listener;
+    ctx.on_progress = listener ? env->GetMethodID(env->GetObjectClass(listener), "onProgress", "(III)V") : nullptr;
+    report(&ctx, STAGE_LISTEN, 0, 1);
+
+    pin_to_cores(env, cores);
+    g_yue2_n_threads = n_threads > 0 ? n_threads : 0;
+
+    int     T = 0, sr = 0;
+    float * planar = studio_audio_read(audio.c_str(), &T, &sr);
+    std::vector<float> mono;
+    bool               read_ok = planar && mert_mono_24k(planar, T, sr, &mono);
+    if (!read_ok) {
+        fprintf(stderr, "[JNI] FATAL: cannot read %s\n", audio.c_str());
+        return finish(-1);
+    }
+    SheetSage2 m;
+    if (!ss2_load(&m, model.c_str())) {
+        return finish(-1);
+    }
+    std::string abc, error;
+    DebugDumper dbg;
+    debug_init(&dbg, nullptr);
+    bool ok = ss2_transcribe(&m, mono.data(), (int) mono.size(), melody_only, &abc, &error, &dbg);
+    ss2_free(&m);
+    if (g_cancel.load()) {
+        return finish(1);
+    }
+    if (!ok || trim(abc).empty()) {
+        fprintf(stderr, "[JNI] FATAL: transcription failed: %s\n", error.empty() ? "no score" : error.c_str());
+        return finish(-1);
+    }
+    if (!write_atomic(dir + "/cover.abc", abc)) {
+        fprintf(stderr, "[JNI] FATAL: cannot write %s/cover.abc\n", dir.c_str());
+        return finish(-1);
+    }
+    fprintf(stderr, "[JNI] Transcribed %s: %.1f s, %zu bytes of score\n", audio.c_str(),
+            (double) mono.size() / MERT_SAMPLE_RATE, abc.size());
+    report(&ctx, STAGE_LISTEN, 1, 1);
     return finish(0);
 }
 

@@ -45,6 +45,14 @@
             "commit": "c5b5a8190f78c74aa671a4caa19dae8b8e04b3d8",
             "licence": "Apache-2.0"
           },
+          "addons": [
+            {
+              "id": "cover",
+              "name": "Covers",
+              "note": "The SheetSage2 transcriber and its MERT-v2 parent, into the engine's Hugging Face cache",
+              "bytes": 2758554354
+            }
+          ],
           "variants": [
             {
               "id": "8bit",
@@ -73,6 +81,17 @@
             "commit": "ecf74c145505acc5a726331a3e70a802656b7c31",
             "licence": "MIT"
           },
+          "addons": [
+            {
+              "id": "cover",
+              "name": "Covers",
+              "note": "The SheetSage2 transcriber, MERT-v2 beside it",
+              "files": [
+                {"role": "transcriber", "name": "SheetSage2-Q8_0.gguf", "bytes": 105629856, "sha256": "95d8fa8761753b4833782a52b68d5c0afa3bd3cfbc03d3dcbbf8ded0c13f611e", "url": "https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/main/SheetSage2-Q8_0.gguf?download=true"},
+                {"role": "mert", "name": "MERT-v2-FullSong-Q8_0.gguf", "bytes": 902283712, "sha256": "35a6032ec7e8123c02becdefc7bfe10a3adb33faa8a1951dc0af864b4494b8ef", "url": "https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/main/MERT-v2-FullSong-Q8_0.gguf?download=true"}
+              ]
+            }
+          ],
           "variants": [
             {
               "id": "Q5_K_M",

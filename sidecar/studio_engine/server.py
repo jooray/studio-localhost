@@ -4,6 +4,7 @@ Requests (one JSON object per line on stdin):
   {"id": "r1", "cmd": "configure", "backend": "mlx", "family": "yue2", ...backend config}
   {"id": "r2", "cmd": "generate", "job": "j1", "output_dir": "...", ...params}
   {"id": "r3", "cmd": "cancel", "job": "j1"}
+  {"id": "r4", "cmd": "cover", "job": "j2", "output_dir": "...", "source_audio": "...", ...params}
 Responses: {"id": "r1", "ok": true, "result": {...}} | {"id": "r1", "ok": false, "error": "..."}
 Events:    {"event": "progress", "job": "j1", "stage": "semantic", "label": "...", "done": 10,
             "total": 750, "unit": "tokens", "elapsed": 3.2}
@@ -190,6 +191,9 @@ class Server:
     def cmd_extend(self, msg):
         return self._start_job(msg, _job_extend)
 
+    def cmd_cover(self, msg):
+        return self._start_job(msg, _job_cover)
+
 
 def _params(msg):
     return {k: v for k, v in msg.items() if k not in ("id", "cmd")}
@@ -201,10 +205,18 @@ def _extra_npy(abc_ids):
     return None
 
 
-def _save(backend, out, result, **kw):
-    return common.save_song(out, audio=result["audio"], sample_rate=backend.sample_rate, codes=result["codes"],
-                            abc=result.get("abc"), request=result["request"], config=result["config"],
-                            timing=result["timing"], truncated=result["truncated"], **kw)
+def _save(backend, out, result, keep_latents=True, steps=None, **kw):
+    saved = common.save_song(out, audio=result["audio"], sample_rate=backend.sample_rate, codes=result["codes"],
+                             abc=result.get("abc"), request=result["request"], config=result["config"],
+                             timing=result["timing"], truncated=result["truncated"], **kw)
+    work = Path(out) / "work"
+    # The finished mix's latents, so a sketch can be refined later without mixing from scratch.
+    latents = result.get("latents")
+    if keep_latents and latents is not None and steps:
+        from .yue2 import flow
+        flow.write_latents(work, latents, int(steps), int(result["request"]["seed"]))
+    (work / "preview.flac").unlink(missing_ok=True)
+    return saved
 
 
 def _job_generate(backend, msg, cancel):
@@ -224,7 +236,7 @@ def _job_generate(backend, msg, cancel):
         plan = result.get("plan")
         abc_ids = getattr(plan, "abc_ids", None) if plan is not None else None
     backend.progress("post", "Saving")
-    return _save(backend, out, result, extra_npy=_extra_npy(abc_ids))
+    return _save(backend, out, result, steps=msg.get("steps") or 32, extra_npy=_extra_npy(abc_ids))
 
 
 def _job_rerender(backend, msg, cancel):
@@ -233,7 +245,24 @@ def _job_rerender(backend, msg, cancel):
     backend.work_dir = out / "work"
     result = backend.rerender(source, msg, out, cancel)
     backend.progress("post", "Saving")
-    return _save(backend, out, result, extra_npy=_extra_npy(source.get("abc_ids")))
+    return _save(backend, out, result, steps=msg.get("steps") or 32, extra_npy=_extra_npy(source.get("abc_ids")))
+
+
+def _job_cover(backend, msg, cancel):
+    """Cover a recording: transcribe its score (kept in work/cover.abc, so a stopped job does not
+    listen again), then a new song from that score with the cover's words and style."""
+    out = common.prepare_dir(msg["output_dir"])
+    work = out / "work"
+    backend.work_dir = work
+    mode = msg.get("mode") if msg.get("mode") in ("full", "melody") else "full"
+    score = work / "cover.abc"
+    if not (score.is_file() and score.read_text(encoding="utf-8").strip()):
+        abc = backend.transcribe(msg["source_audio"], mode, work / "transcription", cancel)
+        tmp = work / "cover.abc.tmp"
+        tmp.write_text(abc, encoding="utf-8")
+        tmp.replace(score)
+    return _job_generate(backend, {**msg, "mode": mode, "instrumental": False,
+                                   "abc": score.read_text(encoding="utf-8")}, cancel)
 
 
 def _job_extend(backend, msg, cancel):
@@ -266,7 +295,7 @@ def _job_extend(backend, msg, cancel):
     section = {"start_frame": a, "end_frame": b, "start_seconds": a / fr, "end_seconds": b / fr,
                "source_frames": n, "new_frames": result.get("new_frames"),
                "add_seconds": msg.get("add_seconds")}
-    saved = _save(backend, out, {**result, "audio": final, "codes": timeline},
+    saved = _save(backend, out, {**result, "audio": final, "codes": timeline}, keep_latents=False,
                   extra_audio={"render.flac": render} if seam["used"] == "splice" else None,
                   extra_npy=_extra_npy(abc_ids))
     saved["seam"] = seam

@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/widgets.dart';
+import 'package:path/path.dart' as p;
 
 import '../core/jobs/job_queue.dart';
 import '../core/library/catalogue.dart';
@@ -19,7 +22,15 @@ class GenerateForm extends ChangeNotifier {
     instrumental = f['instrumental'] as bool? ?? false;
     mode = f['mode'] as String? ?? 'full';
     precision = f['precision'] as String? ?? '8bit';
-    steps = (f['steps'] as num?)?.toInt() ?? 32;
+    steps = (f['steps'] as num?)?.toInt() ?? studio.model?.limits.defaultSteps ?? 32;
+    // A phone takes hours per song at full quality: slow devices start on the sketch preset
+    // (once, so a later choice of the user sticks).
+    // Decided once the engine is known (it may not be yet at the very first start).
+    final engine = studio.engineDescriptor;
+    if (!studio.settings.presetsIntroduced && engine != null && stepChoices.isNotEmpty) {
+      if (engine.runtime != 'mlx') steps = stepChoices.first;
+      studio.settings.presetsIntroduced = true;
+    }
     limitLength = f['limitLength'] as bool? ?? true;
     maxSeconds = (f['maxSeconds'] as num?)?.toDouble() ?? 120;
     seed.text = '${f['seed'] ?? randomSeed()}';
@@ -126,6 +137,14 @@ class GenerateForm extends ChangeNotifier {
   int variants = 1;
   bool showAbc = false;
 
+  /// A cover: the recording whose tune the next song takes (null: a song from the words alone).
+  String? coverPath;
+
+  /// full: the recording's melody and chords; melody: its melody alone.
+  String coverMode = 'full';
+
+  bool get covering => coverPath != null;
+
   void update(void Function() f) {
     f();
     notifyListeners();
@@ -141,12 +160,29 @@ class GenerateForm extends ChangeNotifier {
   bool get hasWords => style.text.trim().isNotEmpty || lyrics.text.trim().isNotEmpty;
 
   bool get canSubmit =>
-      studio.engine != null && (style.text.trim().isNotEmpty || lyrics.text.trim().isNotEmpty);
+      studio.engine != null && (style.text.trim().isNotEmpty || lyrics.text.trim().isNotEmpty) && (!covering || studio.coverReady);
 
-  /// The etched one-line summary of the recording settings.
+  /// Quality presets over the model's step choices: fewest steps a sketch, most the final.
+  String? presetOf(int s) {
+    final c = stepChoices;
+    final i = c.indexOf(s);
+    if (c.length < 2 || i < 0) return null;
+    return i == 0 ? 'sketch' : (i == c.length - 1 ? 'final' : 'standard');
+  }
+
+  /// The length that will be recorded (the cap, or the model's full length).
+  double get lengthSeconds => limitLength ? maxSeconds : maxLength;
+
+  /// How long recording at [s] steps would take on this device (all takes).
+  Duration estimateFor(int s) =>
+      queue.estimate(seconds: lengthSeconds, steps: s, precision: precisions.contains(precision) ? precision : null) * variants;
+
+  /// The etched summary of the recording settings: quality, then length and time.
   String get summary => [
-        '$steps STEPS',
+        if (covering) 'COVER',
+        presetOf(steps)?.toUpperCase() ?? '$steps STEPS',
         limitLength ? formatDuration(maxSeconds) : 'FULL',
+        formatEstimate(estimateFor(steps)),
         if (variants > 1) '×$variants',
       ].join(' · ');
 
@@ -157,9 +193,11 @@ class GenerateForm extends ChangeNotifier {
     final s0 = (sameSeed ? reuseSeed : null) ?? int.tryParse(seed.text.trim()) ?? randomSeed();
     // A title typed before recording is the user's; otherwise one is derived from the words.
     final named = title.text.trim().isNotEmpty;
+    final cover = coverPath;
     final base = named
         ? title.text.trim()
-        : (deriveTitle(lyrics: lyrics.text, style: style.text, instrumental: instrumental) ?? 'Untitled');
+        : (deriveTitle(lyrics: lyrics.text, style: style.text, instrumental: instrumental && cover == null) ??
+            (cover != null ? '${p.basenameWithoutExtension(cover)} (cover)' : 'Untitled'));
     studio.settings.lastForm = {
       'title': title.text,
       'style': style.text,
@@ -175,8 +213,37 @@ class GenerateForm extends ChangeNotifier {
     };
     final features = studio.model!.features;
     final n = variants;
+    // A cover sings the recording's score with these words: its copy goes into the song folder,
+    // where the engine transcribes it (once; a stopped job keeps the score).
+    final coverSource = cover == null ? null : 'work/cover-source${p.extension(cover).toLowerCase()}';
+    final transcriber = studio.coverAddon?.file('transcriber');
     for (var i = 0; i < n; i++) {
       final s = s0 + i;
+      if (cover != null) {
+        await queue.submit(n > 1 ? '$base #${i + 1}' : base, {
+          'kind': 'cover',
+          'title_user': named,
+          'params': {
+            'style': style.text.trim(),
+            'lyrics': lyrics.text,
+            'mode': coverMode,
+            'seed': s,
+            'steps': steps,
+            if (precisions.isNotEmpty) 'precision': precisions.contains(precision) ? precision : precisions.first,
+            'max_seconds': limitLength ? maxSeconds.round() : maxLength.round(),
+          },
+          'cover': {
+            'source_audio': coverSource,
+            'source_name': p.basename(cover),
+            if (transcriber != null) 'transcriber': studio.modelFilePath(transcriber),
+          },
+        }, prepare: (song) async {
+          final dest = File(p.join(song.dir, coverSource!));
+          await dest.parent.create(recursive: true);
+          await File(cover).copy(dest.path);
+        });
+        continue;
+      }
       await queue.submit(n > 1 ? '$base #${i + 1}' : base, {
         'kind': 'generate',
         'title_user': named,
@@ -196,6 +263,7 @@ class GenerateForm extends ChangeNotifier {
     update(() {
       seed.text = '${s0 + n}';
       title.clear();
+      coverPath = null;
       fromLabel = null;
       reuseSeed = null;
       sameSeed = false;

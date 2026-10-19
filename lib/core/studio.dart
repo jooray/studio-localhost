@@ -66,6 +66,18 @@ class Studio extends ChangeNotifier {
   /// Where a model file of the current format lives on this device.
   String modelFilePath(ModelFile f) => p.join(AppPaths.instance.modelDir(model!.id, format!.id), f.name);
 
+  /// The weights covers need on top of the model, for the current engine's format.
+  ModelAddon? get coverAddon => format?.addon('cover');
+
+  /// Covers can be recorded: the engine reports its transcriber (desktop sidecar), or the
+  /// add-on's files are downloaded (Android, which runs from the app's own files).
+  bool get coverReady {
+    final a = coverAddon;
+    if (a == null || engine == null) return false;
+    if (!Platform.isAndroid) return engine!.canCover;
+    return a.files.every((f) => File(modelFilePath(f)).existsSync());
+  }
+
   JobContext context({String? sourceDir}) =>
       JobContext(model: model!, format: format!, variant: variant!, sourceDir: sourceDir);
 

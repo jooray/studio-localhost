@@ -118,6 +118,15 @@ String formatBytes(num bytes) {
   return '${v.toStringAsFixed(i == 0 ? 0 : 1)} ${units[i]}';
 }
 
+/// A rough wait, said the way a person would: "≈25 MIN", "≈2.5 H".
+String formatEstimate(Duration d) {
+  final m = d.inSeconds / 60;
+  if (m < 1) return '<1 MIN';
+  if (m < 90) return '≈${m.round()} MIN';
+  final h = (m / 30).round() / 2;
+  return '≈${h == h.roundToDouble() ? h.toInt() : h} H';
+}
+
 String formatDuration(num seconds) {
   final s = seconds.round();
   final h = s ~/ 3600, m = (s % 3600) ~/ 60, r = s % 60;

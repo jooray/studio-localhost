@@ -123,12 +123,27 @@ class ModelVariant {
   }
 }
 
+/// Optional weights a feature needs on top of the model (e.g. the transcriber for covers).
+/// Engines with plain files list them; the MLX format downloads Hugging Face snapshots instead.
+class ModelAddon extends ModelVariant {
+  ModelAddon(super.j);
+}
+
 class ModelFormat {
   ModelFormat(this._j)
-      : variants = [for (final v in (_j['variants'] as List? ?? const [])) ModelVariant(Map<String, dynamic>.from(v as Map))];
+      : variants = [for (final v in (_j['variants'] as List? ?? const [])) ModelVariant(Map<String, dynamic>.from(v as Map))],
+        addons = [for (final a in (_j['addons'] as List? ?? const [])) ModelAddon(Map<String, dynamic>.from(a as Map))];
 
   final Map<String, dynamic> _j;
   final List<ModelVariant> variants;
+  final List<ModelAddon> addons;
+
+  ModelAddon? addon(String id) {
+    for (final a in addons) {
+      if (a.id == id) return a;
+    }
+    return null;
+  }
 
   String get id => _j['id'] as String;
   String get kind => _j['kind'] as String? ?? 'files';

@@ -61,7 +61,7 @@ sealed class EngineEvent {
   final String songId;
 }
 
-/// Progress of the running job. [stage] is one of load, plan, semantic, nar, vae, post.
+/// Progress of the running job. [stage] is one of load, listen, plan, semantic, nar, vae, post.
 class EngineProgress extends EngineEvent {
   const EngineProgress(super.songId,
       {required this.stage, this.label = '', this.done, this.total, this.unit, this.elapsed});
@@ -121,6 +121,10 @@ abstract class Engine extends ChangeNotifier {
 
   /// Can this engine turn an external recording into tokens (extend external audio)?
   bool get canTokenizeAudio => false;
+
+  /// Can this engine transcribe a recording and cover it (its transcriber is installed)?
+  /// Engines that run from files the app downloads answer through [Studio.coverReady] instead.
+  bool get canCover => false;
 
   Future<void> shutdown() async {}
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import 'core/demo.dart';
@@ -109,6 +110,17 @@ Future<void> main() async {
         take.listen();
       }
       if (shot.screen != 'reuse') form.lyrics.text = shot.screen == 'mainlong' ? Demo.forty() : original;
+      if (shot.screen == 'rerender') {
+        // A sketch with a saved mix, so the sheet offers to refine it (demo data dir only).
+        final src = library.byNumber(14);
+        if (src != null) {
+          await library.patch(src, {'params': {...src.params, 'steps': 8}});
+          final w = Directory(p.join(src.dir, 'work'))..createSync(recursive: true);
+          File(p.join(w.path, 'latents.f32')).writeAsBytesSync(const [0, 0, 0, 0]);
+          final t = File(p.join(src.dir, 'tokens.csv'));
+          if (!t.existsSync()) t.writeAsStringSync('1,2,3');
+        }
+      }
       if (shot.screen == 'reuse') {
         final src = library.byNumber(14);
         if (src != null) form.reuse(src, label: 'From LRS-014');

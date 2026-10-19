@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path/path.dart' as p;
 
+import '../core/paths.dart';
 import '../core/library/library.dart';
 import '../core/library/song.dart';
 import '../state/generate_form.dart';
@@ -92,7 +93,7 @@ class UiTest {
       // The etched settings: 8 steps, 8-bit.
       final before = form.summary;
       await tap('Recording settings: $before');
-      await tap('Steps 8');
+      await tap(form.studio.model!.limits.steps.length > 1 ? 'sketch, 8 steps, ${formatEstimate(form.estimateFor(8))}' : 'Steps 8');
       await tap('Precision 8bit', wait: const Duration(seconds: 3));
       // Lengths in the sheet start at 0:30; the test wants a short take.
       form.update(() {

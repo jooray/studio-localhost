@@ -16,11 +16,21 @@ class Yue2Job(val dir: File, private val song: JSONObject) {
     val work = File(dir, "work").apply { mkdirs() }
     private val params = song.optJSONObject("params") ?: JSONObject()
     private val extend = song.optJSONObject("extend") ?: JSONObject()
+    private val cover = song.optJSONObject("cover") ?: JSONObject()
     val kind: String = song.optString("kind", "generate")
     private val files = song.optJSONObject("model")?.optJSONObject("files") ?: JSONObject()
     val backbone = File(files.optString("backbone"))
     val vae = File(files.optString("vae"))
     val sourceDir: File? = song.optString("source_dir").takeIf { it.isNotEmpty() && !song.isNull("source_dir") }?.let(::File)
+
+    /** A cover: the recording (copied into the song folder) and the transcriber that hears it. */
+    val coverSource: File? = cover.optString("source_audio").takeIf { it.isNotEmpty() }?.let { File(dir, it) }
+    val transcriber: File? = cover.optString("transcriber").takeIf { it.isNotEmpty() }?.let(::File)
+    val coverScore = File(work, "cover.abc")
+    val coverMelodyOnly: Boolean get() = params.optString("mode") == "melody"
+
+    /** The cover still has to listen to its recording (no transcribed score yet). */
+    val needsTranscription: Boolean get() = kind == "cover" && coverScore.readTextOrNull().isNullOrBlank()
 
     var durationS = 0.0
     var sectionStartFrames = 0
@@ -50,6 +60,13 @@ class Yue2Job(val dir: File, private val song: JSONObject) {
                 val score = File(src, "score.abc")
                 if (score.exists() && !File(work, "score.abc").exists()) score.copyTo(File(work, "score.abc"))
                 durationS = countTokens(tokens.readText()) / FRAME_RATE.toDouble()
+                if (params.optBoolean("refine", false)) {
+                    // Refine the source's finished mix: its latents, pulled back to t and solved from there
+                    val latents = File(File(src, "work"), "latents.f32")
+                    require(latents.exists()) { "The source song has no saved mix to refine" }
+                    if (!File(work, "refine.f32").exists()) latents.copyTo(File(work, "refine.f32"))
+                    File(work, "refine.json").writeText(JSONObject().put("t", params.optDouble("refine_t", 0.25)).toString())
+                }
             }
             "extend" -> {
                 val src = sourceDir ?: error("extend without a source song")
@@ -109,7 +126,8 @@ class Yue2Job(val dir: File, private val song: JSONObject) {
             (src.take(sectionStartFrames).joinToString(",") + "," + renderTokens)
         } else renderTokens
         File(dir, "tokens.csv.tmp").apply { writeText(timeline) }.renameTo(File(dir, "tokens.csv"))
-        File(work, "score.abc").takeIf { it.exists() }?.let { it.copyTo(File(dir, "score.abc"), overwrite = true) }
+        (File(work, "score.abc").takeIf { it.exists() } ?: coverScore.takeIf { it.exists() })
+            ?.let { it.copyTo(File(dir, "score.abc"), overwrite = true) }
         o.put("audio", "audio.mp3")
         o.put("render", if (spliced) "render.mp3" else JSONObject.NULL)
         o.put("audio_seconds", audioSeconds(File(dir, "audio.mp3")))
@@ -140,6 +158,12 @@ class Yue2Job(val dir: File, private val song: JSONObject) {
         var lyrics = params.optString("lyrics")
         var mode = params.optString("mode", "full").ifEmpty { "full" }
         var abc: String? = params.optString("abc").takeIf { it.isNotBlank() && !params.isNull("abc") }
+        if (kind == "cover") {
+            // The recording's score, sung with the cover's words (never instrumental, never off)
+            abc = coverScore.readTextOrNull()?.takeIf { it.isNotBlank() } ?: error("The cover has no transcribed score")
+            if (mode != "melody") mode = "full"
+            return Shaped(style, lyrics, mode, abc)
+        }
         if (params.optBoolean("instrumental")) {
             style = instrumentalStyle(style)
             mode = "off"
@@ -164,6 +188,8 @@ class Yue2Job(val dir: File, private val song: JSONObject) {
         const val SAMPLE_RATE = 48000
         const val SAMPLES_PER_FRAME = SAMPLE_RATE / FRAME_RATE
         const val MAX_SECONDS = 360.0
+
+        private fun File.readTextOrNull(): String? = if (exists()) readText() else null
 
         fun countTokens(csv: String): Int = csv.split(",", "\n").count { it.isNotBlank() }
 

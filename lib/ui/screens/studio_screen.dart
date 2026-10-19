@@ -367,9 +367,21 @@ class TakePlot extends StatelessWidget {
       grow: env == null && recording ? math.max(0.04, t.tokenProgress) : null,
       seed: s?.codeSeed ?? 0,
       live: recording,
-      onSeek: t.mode == TakeMode.playing ? (f) => _seek(context, f) : null,
+      onSeek: switch (t.mode) {
+        TakeMode.playing => (f) => _seek(context, f),
+        // Touching the plot of the last song plays it from there.
+        TakeMode.idle when s?.audioPath != null => (f) => _play(context, t, s!, f),
+        _ => null,
+      },
       semanticLabel: s == null ? 'Empty plot' : 'Plot of $number',
     );
+  }
+
+  Future<void> _play(BuildContext context, TakeState t, Song s, double f) async {
+    final p = context.read<AudioPlayerModel>();
+    final seconds = t.envelope?.seconds ?? 0;
+    await p.play(s.audioPath!, title: t.library.fileTitle(s));
+    if (seconds > 0) await p.seek(Duration(milliseconds: (seconds * f * 1000).round()));
   }
 
   void _seek(BuildContext context, double f) {
@@ -400,28 +412,43 @@ class StatusLine extends StatelessWidget {
         child: ErrorLine('Engine stopped', action: 'Setup', detail: fault, onAction: () => openSetup(context)),
       );
     }
+    // A title leads; without one, the state word does (RECORDING), so it gives way first and the
+    // number and times always stay readable.
+    final lead = t.lead ?? (parts.length >= 3 ? parts.first : null);
+    final rest = t.lead == null && lead != null ? parts.sublist(1) : parts;
     final spans = <InlineSpan>[];
     // Engraved spacing: every space sits tighter than a full mono cell.
     final gap = TextSpan(
       text: ' ',
       style: style.copyWith(fontSize: style.fontSize! * 0.42),
     );
-    for (var i = 0; i < parts.length; i++) {
+    for (var i = 0; i < rest.length; i++) {
       if (i > 0) spans.addAll([gap, const TextSpan(text: '·'), gap]);
-      final words = parts[i].split(' ');
+      final words = rest[i].split(' ');
       for (var k = 0; k < words.length; k++) {
         if (k > 0) spans.add(gap);
         spans.add(TextSpan(text: words[k]));
       }
     }
-    final lead = t.lead;
-    // A title leads (and gives way first); the number and time always stay readable.
-    final Widget text = lead == null
-        ? Text.rich(TextSpan(style: style, children: spans), maxLines: 1, overflow: TextOverflow.fade, softWrap: false)
-        : Row(children: [
-            Flexible(child: Text(lead.toUpperCase(), style: style, maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false)),
-            Text.rich(TextSpan(style: style, children: [gap, const TextSpan(text: '·'), gap, ...spans]), maxLines: 1, softWrap: false),
-          ]);
+    final Widget text;
+    if (lead == null) {
+      text = Text.rich(TextSpan(style: style, children: spans), maxLines: 1, overflow: TextOverflow.fade, softWrap: false);
+    } else if (t.lead == null) {
+      // A state word is whole or absent (the sheet header repeats it): never "RECO…".
+      final scaler = MediaQuery.textScalerOf(context);
+      double width(InlineSpan span) =>
+          (TextPainter(text: span, textDirection: TextDirection.ltr, maxLines: 1, textScaler: scaler)..layout()).width;
+      final full = TextSpan(style: style, children: [TextSpan(text: lead.toUpperCase()), gap, const TextSpan(text: '·'), gap, ...spans]);
+      final short = TextSpan(style: style, children: spans);
+      text = LayoutBuilder(
+        builder: (_, c) => Text.rich(width(full) <= c.maxWidth ? full : short, maxLines: 1, overflow: TextOverflow.fade, softWrap: false),
+      );
+    } else {
+      text = Row(children: [
+        Flexible(child: Text(lead.toUpperCase(), style: style, maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false)),
+        Text.rich(TextSpan(style: style, children: [gap, const TextSpan(text: '·'), gap, ...spans]), maxLines: 1, softWrap: false),
+      ]);
+    }
     Widget? action;
     VoidCallback? onTap;
     switch (mode) {
@@ -438,7 +465,16 @@ class StatusLine extends StatelessWidget {
         onTap = () => context.read<JobQueue>().resume(s!);
         action = Etched('Retry', size: 13, color: Sleeve.ink);
       case TakeMode.recording:
-        onTap = () => openSong(context, s!);
+        // Partway through mixing the engine leaves a preview: play it to judge the song early.
+        final preview = s?.previewPath;
+        if (preview != null) {
+          final player = context.read<AudioPlayerModel>();
+          final on = player.path == preview && player.playing;
+          onTap = () => player.toggle(preview, title: '${t.library.fileTitle(s!)} (preview)');
+          action = GlyphIcon(on ? Glyph.pause : Glyph.play, size: 22 * u);
+        } else {
+          onTap = () => openSong(context, s!);
+        }
       default:
         break;
     }
@@ -446,7 +482,7 @@ class StatusLine extends StatelessWidget {
       frame: false,
       onTap: onTap,
       minHeight: 0,
-      semanticLabel: [?lead, ...parts].join(', '),
+      semanticLabel: [?lead, ...parts, if (mode == TakeMode.recording && s?.previewPath != null) 'play preview'].join(', '),
       padding: EdgeInsets.only(left: inset * u, right: 12 * u),
       alignment: Alignment.centerLeft,
       child: Row(
@@ -485,8 +521,8 @@ class SheetHeader extends StatelessWidget {
     if (s == null) {
       lead = Etched('Next · ${Catalogue.format(t.nextNumber)}', size: size, color: Sleeve.ink, weight: FontWeight.w500);
     } else {
-      // The status line above already names the song; this says the words are its record.
-      lead = Etched('${Catalogue.format(t.number(s))} · as recorded', size: size, color: Sleeve.inkMute);
+      // The status line above already names the song; this says what the words are to it.
+      lead = Etched('${Catalogue.format(t.number(s))} · ${t.sheetNote(s)}', size: size, color: Sleeve.inkMute);
     }
     // Quiet provenance of a reused prompt, until the user records or edits.
     final provenance = s == null && from != null ? Etched(from, size: 11, color: Sleeve.inkMute) : null;
@@ -791,8 +827,9 @@ class RecordRow extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(summary.first, maxLines: 1, overflow: TextOverflow.clip, softWrap: false, style: small),
-                Text(summary.skip(1).join(' · '), maxLines: 1, overflow: TextOverflow.clip, softWrap: false, style: small),
+                // Quality, then length and time: shrinks to fit rather than losing the time.
+                FittedBox(fit: BoxFit.scaleDown, child: Text(summary.first, maxLines: 1, softWrap: false, style: small)),
+                FittedBox(fit: BoxFit.scaleDown, child: Text(summary.skip(1).join(' · '), maxLines: 1, softWrap: false, style: small)),
               ],
             ),
           ),

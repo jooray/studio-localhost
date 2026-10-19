@@ -55,16 +55,17 @@ index 120b9e1..419bc37 100644
          const Yue2Generation & g = (*out)[i];
 diff --git a/src/hooks.h b/src/hooks.h
 new file mode 100644
-index 0000000..2ab1fd7
+index 0000000..3f89355
 --- /dev/null
 +++ b/src/hooks.h
-@@ -0,0 +1,23 @@
+@@ -0,0 +1,42 @@
 +#pragma once
-+// hooks.h: optional progress hooks and thread override (yue2-android patch)
++// hooks.h: optional progress hooks and thread override (yue2-android patch v2: preview, refine)
 +//
 +// Inline globals, one instance per process across every translation unit.
 +// All hooks are optional; a null pointer keeps upstream behaviour.
 +
++#include <cmath>
 +#include <vector>
 +
 +struct Yue2Hooks {
@@ -76,25 +77,103 @@ index 0000000..2ab1fd7
 +    // after every VAE tile
 +    void (*vae_tile)(void * user, int tile, int tiles) = nullptr;
 +    void * user = nullptr;
++    // once, after flow matching step preview_step of a one-variation solve: the clean latents
++    // guessed from that state (x0 = x_t - t * v), [frames, latent_dim]
++    void (*nar_preview)(void * user, const float * latents, int frames) = nullptr;
++    int preview_step = 0;
++    // refine: the song's noise is replaced by these latents pulled back to refine_t on the
++    // straight path from it, and only the rest of the step schedule runs
++    const float * refine_latents = nullptr;
++    int           refine_frames  = 0;
++    float         refine_t       = 1.0f;
 +};
 +
 +inline Yue2Hooks g_yue2_hooks;
 +
++// Steps a solve of an n-step schedule runs: all of them, or the tail of a refine
++inline int yue2_solve_steps(int steps) {
++    if (!g_yue2_hooks.refine_latents) {
++        return steps;
++    }
++    int n = (int) lroundf(g_yue2_hooks.refine_t * (float) steps);
++    return n < 1 ? 1 : (n > steps ? steps : n);
++}
++
 +// CPU thread count, 0 = upstream heuristic
 +inline int g_yue2_n_threads = 0;
 diff --git a/src/nar.h b/src/nar.h
-index 2064af4..9d74180 100644
+index 2064af4..b4328f6 100644
 --- a/src/nar.h
 +++ b/src/nar.h
-@@ -564,6 +564,9 @@ static bool nar_solve(Yue2NAR *            n,
+@@ -531,16 +531,19 @@ static bool nar_solve(Yue2NAR *            n,
+     std::vector<float> first(count), mid(count), second(count);
+     float              dt = 1.0f / (float) steps;
+     char               name[64];
++    // yue2-android: a refine starts partway down the schedule
++    const int          n_steps = yue2_solve_steps(steps);
++    const float        t0      = (float) n_steps / (float) steps;
+ 
+     debug_dump_2d(dbg, "noise", state, T_lat, n->latent_dim);
+     Timer solve_timer;
+-    for (int step = 0; step < steps; step++) {
++    for (int step = 0; step < n_steps; step++) {
+         Timer step_timer;
+         if (cancelled && cancelled(cancel_data)) {
+             fprintf(stderr, "[NAR] Cancelled at step %d\n", step);
+             return false;
+         }
+-        float t = 1.0f - (float) step * dt;
++        float t = t0 - (float) step * dt;
+         if (!nar_velocity(n, kv, state, T_lat, M, ar_len, kv_set, nar_logit_clamped(t), first.data())) {
+             return false;
+         }
+@@ -563,7 +566,19 @@ static bool nar_solve(Yue2NAR *            n,
+         debug_dump_2d(dbg, name, second.data(), T_lat, n->latent_dim);
          snprintf(name, sizeof(name), "nar_step%d_xt", step);
          debug_dump_2d(dbg, name, state, T_lat, n->latent_dim);
-         fprintf(stderr, "[NAR] Step %d/%d, %.0f ms\n", step + 1, steps, step_timer.ms());
+-        fprintf(stderr, "[NAR] Step %d/%d, %.0f ms\n", step + 1, steps, step_timer.ms());
++        fprintf(stderr, "[NAR] Step %d/%d, %.0f ms\n", step + 1, n_steps, step_timer.ms());
 +        if (g_yue2_hooks.nar_step) {
-+            g_yue2_hooks.nar_step(g_yue2_hooks.user, step + 1, steps);
++            g_yue2_hooks.nar_step(g_yue2_hooks.user, step + 1, n_steps);
++        }
++        // The midpoint velocity stands in for the one at the new time: x0 = x_t - t * v
++        const float t_next = t - dt;
++        if (g_yue2_hooks.nar_preview && M == 1 && step + 1 == g_yue2_hooks.preview_step && t_next > 0.0f) {
++            std::vector<float> guess(count);
++            for (size_t i = 0; i < count; i++) {
++                guess[i] = state[i] - second[i] * t_next;
++            }
++            g_yue2_hooks.nar_preview(g_yue2_hooks.user, guess.data(), T_lat);
 +        }
      }
      debug_dump_2d(dbg, "nar_x0", state, T_lat, n->latent_dim);
+ 
+diff --git a/src/pipeline.h b/src/pipeline.h
+index f5a2159..e1b23c9 100644
+--- a/src/pipeline.h
++++ b/src/pipeline.h
+@@ -20,6 +20,7 @@
+ #include "audio-resample.h"
+ #include "generate.h"
+ #include "model-store.h"
++#include "hooks.h"
+ #include "nar.h"
+ #include "request.h"
+ #include "timer.h"
+@@ -586,6 +587,14 @@ static bool pipeline_generate(Yue2Pipeline *          p,
+             // chunk taking its view
+             song.latents.assign((size_t) T_lat * YUE2_LATENT_DIM, 0.0f);
+             torch_cpu_randn((uint64_t) (r.seed + j), song.latents.data(), (int64_t) song.latents.size());
++            // yue2-android refine: start from finished latents pulled back towards this noise
++            if (j == 0 && g_yue2_hooks.refine_latents && g_yue2_hooks.refine_frames == T_lat) {
++                const float t0 = (float) yue2_solve_steps(r.steps) / (float) r.steps;
++                for (size_t k = 0; k < song.latents.size(); k++) {
++                    const float x0  = g_yue2_hooks.refine_latents[k];
++                    song.latents[k] = x0 + t0 * (song.latents[k] - x0);
++                }
++            }
+         }
+     }
  
 diff --git a/src/vae.h b/src/vae.h
 index 2f57edf..5a13dd3 100644

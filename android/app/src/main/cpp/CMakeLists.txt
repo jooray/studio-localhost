@@ -10,10 +10,24 @@ set(YUE2_PATCH ${CMAKE_CURRENT_SOURCE_DIR}/../../../../patches/yue2-android-hook
 option(YUE2_VULKAN "Build the ggml Vulkan backend (experimental, off by default)" OFF)
 set(YUE2_CPU_ARCH "armv8.6-a+dotprod+i8mm+fp16" CACHE STRING "-march for the ggml CPU backend")
 
-# Apply the progress-hook / thread-override patch to the engine submodule
-# once; a tree that already carries it is left alone.
-if(NOT EXISTS ${YUE2_DIR}/src/hooks.h)
+# Apply the progress-hook / thread-override / preview / refine patch to the engine
+# submodule once; a tree that carries this version is left alone, an older one is
+# reset to the submodule commit first.
+set(YUE2_PATCH_MARK "yue2-android patch v2")
+set(YUE2_PATCHED FALSE)
+if(EXISTS ${YUE2_DIR}/src/hooks.h)
+    file(READ ${YUE2_DIR}/src/hooks.h YUE2_HOOKS)
+    string(FIND "${YUE2_HOOKS}" "${YUE2_PATCH_MARK}" YUE2_MARK_AT)
+    if(NOT YUE2_MARK_AT EQUAL -1)
+        set(YUE2_PATCHED TRUE)
+    endif()
+endif()
+if(NOT YUE2_PATCHED)
     find_package(Git REQUIRED)
+    if(EXISTS ${YUE2_DIR}/src/hooks.h)
+        execute_process(COMMAND ${GIT_EXECUTABLE} checkout -- src WORKING_DIRECTORY ${YUE2_DIR})
+        file(REMOVE ${YUE2_DIR}/src/hooks.h)
+    endif()
     execute_process(COMMAND ${GIT_EXECUTABLE} apply ${YUE2_PATCH}
                     WORKING_DIRECTORY ${YUE2_DIR} RESULT_VARIABLE PATCH_RESULT)
     if(NOT PATCH_RESULT EQUAL 0)

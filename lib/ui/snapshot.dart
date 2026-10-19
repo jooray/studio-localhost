@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import '../core/library/library.dart';
+import '../state/library_view.dart';
 import 'screens/catalogue_screen.dart';
 import 'screens/extend_screen.dart';
 import 'screens/record_sheet.dart';
@@ -85,7 +86,8 @@ class SnapshotFrame extends StatelessWidget {
             padding: EdgeInsets.zero,
             viewPadding: EdgeInsets.zero,
             viewInsets: EdgeInsets.zero,
-            textScaler: TextScaler.noScaling,
+            // STUDIO_SNAPSHOT_TEXT_SCALE: the phone's text size setting (e.g. 1.2).
+            textScaler: TextScaler.linear(double.tryParse(Platform.environment['STUDIO_SNAPSHOT_TEXT_SCALE'] ?? '') ?? 1),
             disableAnimations: true,
           );
           return OverflowBox(
@@ -117,6 +119,7 @@ class SnapshotScreen extends StatelessWidget {
             'sheet' => _SheetOpener(key: ValueKey(shot!.file)),
             'song' => SongScreen(idOf(14)),
             'rename' => SongScreen(idOf(14), startRename: true, key: ValueKey(shot!.file)),
+            'rerender' => _RerenderOpener(idOf(14), key: ValueKey(shot!.file)),
             'extend' => ExtendScreen(sourceId: idOf(14)),
             'setup' => const SetupScreen(),
             'settings' => const SettingsScreen(),
@@ -124,6 +127,30 @@ class SnapshotScreen extends StatelessWidget {
           };
         },
       );
+}
+
+/// A song page with the re-render sheet open.
+class _RerenderOpener extends StatefulWidget {
+  const _RerenderOpener(this.id, {super.key});
+  final String id;
+
+  @override
+  State<_RerenderOpener> createState() => _RerenderOpenerState();
+}
+
+class _RerenderOpenerState extends State<_RerenderOpener> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final v = context.read<LibraryView>();
+      final s = v.library.byId(widget.id);
+      if (mounted && s != null) showRerenderSheet(context, v, s);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => SongScreen(widget.id);
 }
 
 /// The studio with the recording sheet open.

@@ -28,6 +28,32 @@ class LiveJob {
   bool cancelling = false;
   final Map<String, double> stageSeconds = {};
 
+  // When `done` last moved in this stage, and where it first moved (the pace is measured from
+  // there: the app can attach in the middle of a step, so the time before the first move says
+  // nothing about the pace).
+  DateTime lastMoveAt = DateTime.now();
+  int? _lastDone;
+  DateTime? _firstMoveAt;
+  int? _firstMoveDone;
+
+  void markProgress(int? d) {
+    if (d == null || d == _lastDone) return;
+    final now = DateTime.now();
+    if (_lastDone != null) {
+      _firstMoveAt ??= now;
+      _firstMoveDone ??= d;
+      lastMoveAt = now;
+    }
+    _lastDone = d;
+  }
+
+  /// Seconds per unit of progress seen in this stage, once at least [minUnits] went by.
+  double? secondsPerUnit({int minUnits = 1}) {
+    final t0 = _firstMoveAt, d0 = _firstMoveDone, d = _lastDone;
+    if (t0 == null || d0 == null || d == null || d - d0 < minUnits) return null;
+    return lastMoveAt.difference(t0).inMilliseconds / 1000 / (d - d0);
+  }
+
   double? get fraction => (done != null && total != null && total! > 0) ? (done! / total!).clamp(0, 1).toDouble() : null;
   Duration get elapsed => engineElapsed != null
       ? Duration(milliseconds: (engineElapsed! * 1000).round())
@@ -42,6 +68,9 @@ class LiveJob {
     if (stage == 'semantic' && done != null) tokenFrames = done;
     stage = s;
     stageStartedAt = now;
+    lastMoveAt = now;
+    _lastDone = _firstMoveDone = null;
+    _firstMoveAt = null;
   }
 
   Map<String, double> closeStages() {
@@ -101,17 +130,27 @@ class JobQueue extends ChangeNotifier {
       }
       unawaited(_pump());
     }
-    _ticker ??= Timer.periodic(const Duration(seconds: 1), (_) {
+    _ticker ??= Timer.periodic(const Duration(seconds: 1), (t) {
       final r = running;
       if (r != null && live[r.id] != null) {
         _updateEta(r, live[r.id]!);
         notifyListeners();
       }
+      // An engine that runs its own queue (the Android service) says on disk when a job ended;
+      // its event can be lost (the UI was detached), so look now and then.
+      if (r != null && (engine?.ownsQueue ?? false) && t.tick % 5 == 0) {
+        final now = Song.load(r.dir, readOnly: r.readOnly)?.status;
+        if (now != null && now != SongStatus.running) {
+          unawaited(_ended(EngineJobEnded(r.id, now, error: null)));
+        }
+      }
     });
   }
 
-  /// Create a song and queue it. [fields]: kind, params, parent, source_dir, extend.
-  Future<Song> submit(String title, Map<String, dynamic> fields) async {
+  /// Create a song and queue it. [fields]: kind, params, parent, source_dir, extend, cover.
+  /// [prepare] runs on the new folder before the engine sees the song (e.g. copying a cover's
+  /// recording into it).
+  Future<Song> submit(String title, Map<String, dynamic> fields, {Future<void> Function(Song song)? prepare}) async {
     final ctx = studio.context();
     final song = await library.create(title, {
       'kind': 'generate',
@@ -125,6 +164,7 @@ class JobQueue extends ChangeNotifier {
       'engine': {'id': studio.engineDescriptor!.id, 'app_version': appVersion},
       ...fields,
     });
+    if (prepare != null) await prepare(song);
     await _hand(song);
     return song;
   }
@@ -220,6 +260,7 @@ class JobQueue extends ChangeNotifier {
         j.label = ev.label;
         j.done = ev.done;
         j.total = ev.total;
+        j.markProgress(ev.done);
         j.unit = ev.unit;
         j.engineElapsed = ev.elapsed;
         final s = library.byId(ev.songId);
@@ -262,6 +303,8 @@ class JobQueue extends ChangeNotifier {
       if (ev.status == SongStatus.done) _calibrate(song, r);
     } else {
       await library.refresh();
+      final fresh = library.byId(ev.songId);
+      if (ev.status == SongStatus.done && fresh != null && fresh.meta['engine_timing'] == null) _calibrateFromStages(fresh);
     }
     recent.remove(ev.songId);
     recent.add(ev.songId);
@@ -285,36 +328,60 @@ class JobQueue extends ChangeNotifier {
     return math.min(maxTokens, cap.round());
   }
 
-  void _updateEta(Song s, LiveJob j) {
-    final steps = s.steps ?? 32;
-    final prec = s.precision ?? 'q';
+  /// Rates for this device: composing (frames per second), mixing (seconds per frame and step),
+  /// mastering (seconds per frame). Calibrated from finished songs; until then the fallbacks.
+  /// The phone CPU fallbacks were measured on a Pixel 10 Pro Fold (Q5_K_M, 6 threads, a 2-minute
+  /// song): about 0.85 frames/s composing and 0.21 s per frame and step mixing.
+  ({double tps, double nar, double vae}) _rates(String? precision) {
     final fast = engine?.descriptor.runtime == 'mlx';
-    final tps = studio.settings.calib('ar_tps-$_key-$prec', fast ? 40 : 8);
-    final narRate = studio.settings.calib('nar_spfs-$_key', fast ? 0.0015 : 0.03);
-    final vaeRate = studio.settings.calib('vae_spf-$_key', fast ? 0.0015 : 0.02);
-    final stageElapsed = DateTime.now().difference(j.stageStartedAt).inMilliseconds / 1000;
+    return (
+      tps: studio.settings.calib('ar_tps-$_key-${precision ?? 'q'}', fast ? 40 : 0.85),
+      nar: studio.settings.calib('nar_spfs-$_key', fast ? 0.0015 : 0.2),
+      vae: studio.settings.calib('vae_spf-$_key', fast ? 0.0015 : 0.02),
+    );
+  }
+
+  /// How long a song of [seconds] at [steps] would take on this device, before it is queued.
+  /// [compose] false: a re-render (the composed tokens are reused).
+  Duration estimate({required double seconds, required int steps, String? precision, bool compose = true}) {
+    final r = _rates(precision);
+    final frames = seconds * (studio.model?.limits.frameRate ?? 25);
+    final t = (compose ? frames / r.tps : 0) + frames * steps * r.nar + frames * r.vae;
+    return Duration(seconds: t.round());
+  }
+
+  void _updateEta(Song s, LiveJob j) {
+    final steps = s.solveSteps;
+    final rates = _rates(s.precision);
+    final tps = rates.tps, narRate = rates.nar, vaeRate = rates.vae;
     final done = j.done ?? 0;
-    double liveRate(double fallback) => (done > 10 && stageElapsed > 1) ? done / stageElapsed : fallback;
+    final sinceMove = DateTime.now().difference(j.lastMoveAt).inMilliseconds / 1000;
+    // Time for the units still to come, at the pace measured in this stage (or [fallback] seconds
+    // per unit until there is one), counting down while the current unit runs.
+    double left(int units, double fallback, {int minUnits = 1}) {
+      if (units <= 0) return 0;
+      final per = j.secondsPerUnit(minUnits: minUnits) ?? fallback;
+      return math.max(units * per - sinceMove, (units - 1) * per);
+    }
     var frames = _expectedFrames(s, j);
     var remaining = 0.0;
     var upper = false;
     switch (j.stage) {
       case 'semantic':
-        final rate = liveRate(tps);
         final total = j.total ?? frames;
-        remaining += math.max(0, total - done) / rate;
+        remaining += left(total - done, 1 / tps, minUnits: 10);
         frames = total;
         upper = true;
         remaining += frames * steps * narRate + frames * vaeRate;
       case 'nar':
-        final rate = liveRate(1 / math.max(1e-6, frames * narRate));
-        remaining += math.max(0, (j.total ?? steps) - done) / rate + frames * vaeRate;
+        remaining += left((j.total ?? steps) - done, frames * narRate) + frames * vaeRate;
       case 'vae':
-        remaining += math.max(0, (j.total ?? 1) - done) / liveRate(1);
+        final tiles = j.total ?? 1;
+        remaining += left(tiles - done, frames * vaeRate / math.max(1, tiles));
       case 'post':
         remaining = 1;
       default:
-        if (s.kind != 'rerender') {
+        if (s.kind != 'rerender' && !s.composed) {
           remaining += frames / tps;
           upper = true;
         }
@@ -322,6 +389,19 @@ class JobQueue extends ChangeNotifier {
     }
     j.eta = Duration(seconds: remaining.round());
     j.etaUpperBound = upper;
+  }
+
+  /// Engines without their own timing report (the Android service) still record how long each
+  /// stage took in song.json; calibrate from that.
+  void _calibrateFromStages(Song s) {
+    final st = (s.meta['timing'] as Map?)?['stages'];
+    final frames = (s.meta['token_frames'] as num?)?.toDouble() ?? 0;
+    if (st is! Map || frames <= 0 || s.meta['resume'] == true) return;
+    final sem = st['semantic'], nar = st['nar'], vae = st['vae'];
+    if (s.kind == 'generate' && sem is num && sem > 1) studio.settings.setCalib('ar_tps-$_key-${s.precision ?? 'q'}', frames / sem);
+    if (s.kind == 'extend') return;
+    if (nar is num && nar > 0) studio.settings.setCalib('nar_spfs-$_key', nar / (frames * s.solveSteps));
+    if (vae is num && vae > 0) studio.settings.setCalib('vae_spf-$_key', vae / frames);
   }
 
   void _calibrate(Song s, Map<String, dynamic> r) {
@@ -333,7 +413,7 @@ class JobQueue extends ChangeNotifier {
       studio.settings.setCalib('ar_tps-$_key-${s.precision ?? 'q'}', (sem['output_tps'] as num).toDouble());
     }
     if (s.kind == 'extend' || frames <= 0) return;
-    final steps = s.steps ?? 32;
+    final steps = s.solveSteps;
     if (t['nar_seconds'] is num) studio.settings.setCalib('nar_spfs-$_key', (t['nar_seconds'] as num) / (frames * steps));
     if (t['vae_seconds'] is num) studio.settings.setCalib('vae_spf-$_key', (t['vae_seconds'] as num) / frames);
   }

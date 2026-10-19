@@ -18,4 +18,10 @@ class MainFlutterWindow: NSWindow {
 
     super.awakeFromNib()
   }
+
+  // Closing the only window quits the app. Going through terminate (like Cmd+Q) lets Flutter stop
+  // the engine sidecar while the window still exists; a plain close left the app running windowless.
+  override func performClose(_ sender: Any?) {
+    NSApp.terminate(sender)
+  }
 }
