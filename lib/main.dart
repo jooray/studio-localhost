@@ -122,7 +122,7 @@ Future<void> main() async {
         }
       }
       // The recording settings of a cover (the recording need not exist for the picture).
-      form.coverPath = shot.screen == 'coversheet' ? '/demo/hymna_sr_spev.mp3' : null;
+      form.coverPath = shot.screen == 'coversheet' ? '/demo/street-busker.mp3' : null;
       form.coverStyle = shot.screen == 'coversheet' ? 1.3 : 1.0;
       if (shot.screen == 'reuse') {
         final src = library.byNumber(14);

@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Localhost Recording Studio</title>
-<meta name="description" content="Make full songs from a style and lyrics on your own phone or computer. No server, no account, works offline. Free software, MIT.">
+<meta name="description" content="Make full songs from a style and lyrics, or a cover of a recording in your own style and words, on your own phone or computer. No server, no account, works offline. Free software, MIT.">
 <meta name="theme-color" content="#0A0A0B">
 <meta property="og:title" content="Localhost Recording Studio">
-<meta property="og:description" content="Full songs from a style and lyrics, made on your own device, offline.">
+<meta property="og:description" content="Full songs from a style and lyrics, and covers of a recording, made on your own device, offline.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="assets/img/og.jpg">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png">
@@ -29,6 +29,7 @@
     <a href="#ad">Ad</a>
     <a href="#song">Song</a>
     <a href="#how">How</a>
+    <a href="#covers">Covers</a>
     <a href="#get" class="nav-get">Get it</a>
   </nav>
 </header>
@@ -53,7 +54,7 @@
     </ol>
     <div class="punch" id="punch">
       <h1 id="hero-title">Localhost Recording&nbsp;Studio</h1>
-      <p class="lede">Write a style and some lyrics. It makes the whole song on your own phone or computer, offline.</p>
+      <p class="lede">Write a style and some lyrics. It makes the whole song on your own phone or computer, offline. Give it a recording and it sings a cover of the tune with your words.</p>
       <div class="strip strip-lg" aria-hidden="true"><i class="c-grey"></i><i class="c-blue"></i><i class="c-gold"></i><i class="c-red"></i><i class="c-white"></i></div>
       <p class="hero-links"><a class="btn btn-primary" href="#song">Hear the song it made</a> <a class="btn" href="#get">Get the app</a></p>
     </div>
@@ -124,10 +125,10 @@
     <h2 id="how-title">How it works</h2>
   </div>
   <ol class="steps">
-    <li><span class="label">01 · Write</span><p>A style ("breathless synth chase, 140 bpm, panic") and lyrics with section tags like <code>[Verse]</code> and <code>[Chorus]</code>.</p></li>
-    <li><span class="label">02 · Record</span><p>Press record. Queue a few variants if you like and put the phone back in your pocket.</p></li>
-    <li><span class="label">03 · Render</span><p>The model runs on your phone or computer. Nothing is uploaded and you don't need an account.</p></li>
-    <li><span class="label">04 · Extend</span><p>Pick any section of a song you like and continue it from there. Extends can be chained.</p></li>
+    <li><span class="label">01 · Write</span><p>A style ("breathless synth chase, 140 bpm, panic") and lyrics with section tags like <code>[Verse]</code> and <code>[Chorus]</code>. For a cover, also pick a recording.</p></li>
+    <li><span class="label">02 · Record</span><p>Pick SKETCH, STANDARD or FINAL. Each shows an estimate of how long it will take. Press record, queue a few variants if you like and put the phone back in your pocket.</p></li>
+    <li><span class="label">03 · Render</span><p>The model runs on your phone or computer. Nothing is uploaded and you don't need an account. At standard and final quality, a preview plays a quarter of the way through, so you can decide whether to let it finish.</p></li>
+    <li><span class="label">04 · Extend</span><p>Pick any section of a song you like and continue it from there. Extends can be chained. "Refine this mix" brings a sketch up to full quality and keeps its sound.</p></li>
   </ol>
 
   <div class="two">
@@ -151,8 +152,35 @@
           <tr><th scope="row">On a phone</th><td>minutes for every 10 s of song. Slow, but it works. Let it run in the background.</td></tr>
         </tbody>
       </table>
-      <p class="note">These are the only numbers we have measured. First run downloads the model: about 3.5 GB on Android, about 10.5 GB on a Mac.</p>
+      <p class="note">These are the numbers we have measured. First run downloads the model: about 3.5 GB on Android, about 10.5 GB on a Mac. Covers have their own numbers, <a href="#covers">below</a>.</p>
     </div>
+  </div>
+</section>
+
+<!-- 4b. COVERS -->
+<section class="section" id="covers" aria-labelledby="covers-title">
+  <div class="sec-head">
+    <p class="label">Cover versions</p>
+    <h2 id="covers-title">Covers</h2>
+    <p class="sec-sub">Give it a recording. It sings the tune again in your style, with your words.</p>
+  </div>
+  <div class="feature">
+    <div class="feature-text">
+      <p>Pick a recording in the Cover row of the recording settings. The studio listens to it first and writes down its score: melody and chords (SCORE), or the melody alone (MELODY). Then it makes a new song from that score, in your style and with your lyrics. The cover keeps the tune. The original instruments and voice don't carry over.</p>
+      <p>The Style row sets how hard your style and words pull against the recording's tune, from 0.5 to 2.0. At 1.0, the default, both count evenly. Go higher for a stronger genre and clearer words, and the tune can drift further from the original. Go lower to stay closer to the recording. Any value other than 1.0 makes composing take about twice as long, and the time estimate includes that.</p>
+      <table class="spec">
+        <tbody>
+          <tr><th scope="row">Runs on</th><td>Mac and Android, entirely on the device</td></tr>
+          <tr><th scope="row">Extra download</th><td>about 2.6 GB on a Mac, about 960 MB on a phone</td></tr>
+          <tr><th scope="row">30 s cover</th><td>about a minute on a Mac, sketch quality</td></tr>
+          <tr><th scope="row">20 s cover</th><td>about 20 minutes on a Pixel-class phone, sketch quality</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <figure class="frame shot feature-shot">
+      <img src="assets/img/cover-phone.webp" width="780" height="1688" loading="lazy" decoding="async" alt="Phone recording settings for a cover: quality presets with time estimates, the Cover row set to a recording, Keep set to SCORE with MELODY as the other choice, and Style at 1.3 with the note that your style and words pull harder than the recording.">
+      <figcaption class="label">Phone · cover settings</figcaption>
+    </figure>
   </div>
 </section>
 
@@ -222,12 +250,12 @@
     <li class="frame">
       <span class="label">Android</span>
       <p>Signed APK. arm64, Android 14 or newer.</p>
-      <a class="btn" href="https://github.com/jooray/studio-localhost/releases">Releases</a>
+      <a class="btn" href="https://github.com/jooray/studio-localhost/releases/latest">Latest release</a>
     </li>
     <li class="frame">
       <span class="label">macOS</span>
       <p>App bundle, Apple Silicon recommended. Not notarized yet, so right-click and Open the first time.</p>
-      <a class="btn" href="https://github.com/jooray/studio-localhost/releases">Releases</a>
+      <a class="btn" href="https://github.com/jooray/studio-localhost/releases/latest">Latest release</a>
     </li>
     <li class="frame">
       <span class="label">Linux</span>

@@ -252,3 +252,12 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
 .credits a:hover { color: var(--ink); }
 .joke { margin: 8px 0 0; font: 400 13px/1.5 var(--mono); color: var(--ink-2); letter-spacing: .04em; }
 section[id] { scroll-margin-top: 52px; }
+
+/* Covers */
+.feature { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: clamp(24px, 4vw, 64px); align-items: start; }
+.feature-text p { margin: 0 0 20px; max-width: 62ch; }
+.feature-text .spec { margin-top: 12px; }
+@media (max-width: 800px) {
+  .feature { grid-template-columns: 1fr; }
+  .feature-shot { max-width: 340px; }
+}
