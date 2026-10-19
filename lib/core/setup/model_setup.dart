@@ -175,7 +175,7 @@ class ModelSetup extends ChangeNotifier {
       });
 
   /// Download what covers need on top of the model (an add-on: offered, never part of setup).
-  /// Android: the transcriber GGUFs beside the model. MLX: mlx-Yue's transcription extras and
+  /// Android and yue2.cpp: the transcriber GGUFs beside the model. MLX: mlx-Yue's transcription extras and
   /// the SheetSage2 + MERT-v2 checkpoints in the engine's Hugging Face cache.
   Future<void> installCover() => _guard('Setting up covers', () async {
         final m = model!, f = studio.format!, e = engine!;
@@ -191,6 +191,12 @@ class ModelSetup extends ChangeNotifier {
           return;
         }
         final rt = SidecarRuntime.of(e.runtime, studio.settings);
+        final live = studio.engine;
+        if (rt is Yue2CppRuntime) {
+          // yue-transcribe reads the GGUFs next to the backbone.
+          if (await _downloadFiles(rt.ggufDir(m, f), a.files) && live is SidecarEngine) await live.info();
+          return;
+        }
         if (rt is! MlxRuntime) throw StateError('Covers are not supported by this engine yet.');
         if (!await _ensureUv() || !await _checkDisk(a.bytes)) return;
         task = 'Installing the transcription tools';
@@ -228,7 +234,6 @@ class ModelSetup extends ChangeNotifier {
           return;
         }
         // Ask the engine again what it can do (it answers while a song runs, too).
-        final live = studio.engine;
         if (live is SidecarEngine) await live.info();
       });
 

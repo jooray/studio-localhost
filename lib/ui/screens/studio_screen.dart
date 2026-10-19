@@ -514,7 +514,9 @@ class SheetHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.watch<TakeState>();
-    final from = context.select<GenerateForm, String?>((f) => f.fromLabel);
+    // The draft's provenance: the song it was reused from, or the recording it covers.
+    final from = context.select<GenerateForm, String?>(
+        (f) => f.covering ? 'Cover of ${f.coverLabel}' : f.fromLabel);
     final s = t.sheetSong;
     final size = inline ? 11.0 : 13.0;
     final Widget lead;

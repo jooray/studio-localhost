@@ -23,6 +23,7 @@ class LiveJob {
   String? unit;
   double? engineElapsed;
   int? tokenFrames;
+  int? listenUnits;
   Duration? eta;
   bool etaUpperBound = false;
   bool cancelling = false;
@@ -261,6 +262,7 @@ class JobQueue extends ChangeNotifier {
         j.done = ev.done;
         j.total = ev.total;
         j.markProgress(ev.done);
+        if (ev.stage == 'listen' && ev.total != null) j.listenUnits = ev.total;
         j.unit = ev.unit;
         j.engineElapsed = ev.elapsed;
         final s = library.byId(ev.songId);
@@ -275,6 +277,10 @@ class JobQueue extends ChangeNotifier {
 
   Future<void> _ended(EngineJobEnded ev) async {
     final j = live.remove(ev.songId);
+    final heard = j?.stageSeconds['listen'], units = j?.listenUnits;
+    if (ev.status == SongStatus.done && heard != null && heard > 1 && units != null && units > 0) {
+      studio.settings.setCalib('listen_spu-$_key', heard / units);
+    }
     final e = engine;
     final song = library.byId(ev.songId);
     if (e != null && !e.writesSongMetadata && song != null) {
@@ -332,9 +338,12 @@ class JobQueue extends ChangeNotifier {
   /// mastering (seconds per frame). Calibrated from finished songs; until then the fallbacks.
   /// The phone CPU fallbacks were measured on a Pixel 10 Pro Fold (Q5_K_M, 6 threads, a 2-minute
   /// song): about 0.85 frames/s composing and 0.21 s per frame and step mixing.
-  ({double tps, double nar, double vae}) _rates(String? precision) {
+  ({double tps, double nar, double vae, double listen}) _rates(String? precision) {
     final fast = engine?.descriptor.runtime == 'mlx';
     return (
+      // A cover's transcription, seconds per unit the engine reports (MLX: 30 s windows; the phone
+      // pads the recording into one 300 s window).
+      listen: studio.settings.calib('listen_spu-$_key', fast ? 10 : 180),
       tps: studio.settings.calib('ar_tps-$_key-${precision ?? 'q'}', fast ? 40 : 0.85),
       nar: studio.settings.calib('nar_spfs-$_key', fast ? 0.0015 : 0.2),
       vae: studio.settings.calib('vae_spf-$_key', fast ? 0.0015 : 0.02),
@@ -367,6 +376,11 @@ class JobQueue extends ChangeNotifier {
     var remaining = 0.0;
     var upper = false;
     switch (j.stage) {
+      case 'listen':
+        final units = j.total ?? 1;
+        remaining += left(units - done, rates.listen);
+        remaining += frames / tps + frames * steps * narRate + frames * vaeRate;
+        upper = true;
       case 'semantic':
         final total = j.total ?? frames;
         remaining += left(total - done, 1 / tps, minUnits: 10);
@@ -385,6 +399,7 @@ class JobQueue extends ChangeNotifier {
           remaining += frames / tps;
           upper = true;
         }
+        if (s.kind == 'cover' && !s.transcribed) remaining += rates.listen;
         remaining += frames * steps * narRate + frames * vaeRate;
     }
     j.eta = Duration(seconds: remaining.round());
@@ -398,7 +413,7 @@ class JobQueue extends ChangeNotifier {
     final frames = (s.meta['token_frames'] as num?)?.toDouble() ?? 0;
     if (st is! Map || frames <= 0 || s.meta['resume'] == true) return;
     final sem = st['semantic'], nar = st['nar'], vae = st['vae'];
-    if (s.kind == 'generate' && sem is num && sem > 1) studio.settings.setCalib('ar_tps-$_key-${s.precision ?? 'q'}', frames / sem);
+    if ((s.kind == 'generate' || s.kind == 'cover') && sem is num && sem > 1) studio.settings.setCalib('ar_tps-$_key-${s.precision ?? 'q'}', frames / sem);
     if (s.kind == 'extend') return;
     if (nar is num && nar > 0) studio.settings.setCalib('nar_spfs-$_key', nar / (frames * s.solveSteps));
     if (vae is num && vae > 0) studio.settings.setCalib('vae_spf-$_key', vae / frames);

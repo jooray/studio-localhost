@@ -421,7 +421,10 @@ class _CoverRow extends StatelessWidget {
       showLine(context, 'Pick ${_extensions.take(_extensions.length - 1).map((e) => e.toUpperCase()).join(', ')} or ${_extensions.last.toUpperCase()}', error: true);
       return;
     }
-    f.update(() => f.coverPath = file.path);
+    f.update(() {
+      f.coverPath = file.path;
+      f.coverName = null;
+    });
   }
 
   @override
@@ -446,7 +449,7 @@ class _CoverRow extends StatelessWidget {
     final String source;
     VoidCallback? onSource;
     if (f.covering) {
-      source = p.basename(f.coverPath!);
+      source = f.coverLabel!;
       onSource = () => _pick(context);
     } else if (ready) {
       source = 'a recording…';
@@ -468,7 +471,7 @@ class _CoverRow extends StatelessWidget {
               SizedBox(
                 width: 74 * u + 8,
                 height: 48,
-                child: cell('none', on: !f.covering, onTap: () => f.update(() => f.coverPath = null), semantic: 'No cover'),
+                child: cell('none', on: !f.covering, onTap: () => f.update(() => f.coverPath = f.coverName = null), semantic: 'No cover'),
               ),
               Expanded(
                 child: SizedBox(

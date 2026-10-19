@@ -168,6 +168,7 @@ class _DetailsState extends State<_Details> {
         if (song.mode.isNotEmpty) ('Plan', song.mode),
         ('Made', _date(song.created)),
         if (song.kind != 'generate') ('Kind', song.kind),
+        if (song.cover['source_name'] is String) ('Cover of', song.cover['source_name'] as String),
         if (section != null)
           ('From', '${(section['start_seconds'] as num? ?? 0).toStringAsFixed(1)} s · +${((section['new_frames'] as num? ?? 0) / 25).toStringAsFixed(1)} s new'),
         if (song.timing['total_seconds'] is num) ('Took', formatDuration(song.timing['total_seconds'] as num)),

@@ -488,6 +488,8 @@ void showLine(BuildContext context, String text, {bool error = false, String? ac
     ]),
     action: action == null ? null : SnackBarAction(label: action.toUpperCase(), textColor: Sleeve.ink, onPressed: onAction ?? () {}),
     duration: Duration(seconds: error || action != null ? 6 : 3),
+    // An offered action (Undo) is a convenience, not a question: the line still goes away.
+    persist: false,
   ));
 }
 

@@ -70,13 +70,13 @@ class GenerateForm extends ChangeNotifier {
 
   /// Start a new song from another one's prompt: words and settings, a new seed, no title.
   void reuse(Song s, {required String label}) {
-    final p = s.params;
+    final params = s.params;
     style.text = s.style;
     lyrics.text = s.lyrics;
     title.clear();
     if (stepChoices.contains(s.steps)) steps = s.steps!;
     if (s.precision != null && precisions.contains(s.precision)) precision = s.precision!;
-    final max = p['max_seconds'];
+    final max = params['max_seconds'];
     if (max is num && max < maxLength) {
       limitLength = true;
       maxSeconds = max.toDouble();
@@ -85,8 +85,17 @@ class GenerateForm extends ChangeNotifier {
     }
     if (modes.contains(s.mode)) mode = s.mode;
     instrumental = s.instrumental;
+    // A cover brings its recording along (the copy in its folder) and what it kept of it.
+    final source = s.kind == 'cover' ? s.coverSourcePath : null;
+    if (source != null && File(source).existsSync()) {
+      coverPath = source;
+      coverName = s.cover['source_name'] as String? ?? p.basename(source);
+      coverMode = params['mode'] == 'melody' ? 'melody' : 'full';
+    } else {
+      coverPath = coverName = null;
+    }
     // A score only travels when the user wrote it (it is in the request, not planned by the model).
-    final userAbc = p['abc'];
+    final userAbc = params['abc'];
     abc.text = userAbc is String ? userAbc : '';
     showAbc = abc.text.trim().isNotEmpty;
     final m = s.modelId;
@@ -139,6 +148,11 @@ class GenerateForm extends ChangeNotifier {
 
   /// A cover: the recording whose tune the next song takes (null: a song from the words alone).
   String? coverPath;
+
+  /// The recording's own name (a reused cover's copy is called work/cover-source.*).
+  String? coverName;
+
+  String? get coverLabel => coverPath == null ? null : (coverName ?? p.basename(coverPath!));
 
   /// full: the recording's melody and chords; melody: its melody alone.
   String coverMode = 'full';
@@ -197,7 +211,7 @@ class GenerateForm extends ChangeNotifier {
     final base = named
         ? title.text.trim()
         : (deriveTitle(lyrics: lyrics.text, style: style.text, instrumental: instrumental && cover == null) ??
-            (cover != null ? '${p.basenameWithoutExtension(cover)} (cover)' : 'Untitled'));
+            (cover != null ? '${p.basenameWithoutExtension(coverLabel!)} (cover)' : 'Untitled'));
     studio.settings.lastForm = {
       'title': title.text,
       'style': style.text,
@@ -217,10 +231,12 @@ class GenerateForm extends ChangeNotifier {
     // where the engine transcribes it (once; a stopped job keeps the score).
     final coverSource = cover == null ? null : 'work/cover-source${p.extension(cover).toLowerCase()}';
     final transcriber = studio.coverAddon?.file('transcriber');
+    // Takes of one cover share one transcription: the later ones take the first one's score.
+    String? scoreFrom;
     for (var i = 0; i < n; i++) {
       final s = s0 + i;
       if (cover != null) {
-        await queue.submit(n > 1 ? '$base #${i + 1}' : base, {
+        final song = await queue.submit(n > 1 ? '$base #${i + 1}' : base, {
           'kind': 'cover',
           'title_user': named,
           'params': {
@@ -234,14 +250,16 @@ class GenerateForm extends ChangeNotifier {
           },
           'cover': {
             'source_audio': coverSource,
-            'source_name': p.basename(cover),
+            'source_name': coverLabel,
             if (transcriber != null) 'transcriber': studio.modelFilePath(transcriber),
+            'score_from': ?scoreFrom,
           },
         }, prepare: (song) async {
           final dest = File(p.join(song.dir, coverSource!));
           await dest.parent.create(recursive: true);
           await File(cover).copy(dest.path);
         });
+        scoreFrom ??= song.dir;
         continue;
       }
       await queue.submit(n > 1 ? '$base #${i + 1}' : base, {
@@ -263,7 +281,7 @@ class GenerateForm extends ChangeNotifier {
     update(() {
       seed.text = '${s0 + n}';
       title.clear();
-      coverPath = null;
+      coverPath = coverName = null;
       fromLabel = null;
       reuseSeed = null;
       sameSeed = false;

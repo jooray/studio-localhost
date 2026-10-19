@@ -256,6 +256,14 @@ def _job_cover(backend, msg, cancel):
     backend.work_dir = work
     mode = msg.get("mode") if msg.get("mode") in ("full", "melody") else "full"
     score = work / "cover.abc"
+    shared = Path(msg["score_from"]) / "work" / "cover.abc" if msg.get("score_from") else None
+    if shared is not None and shared.is_file() and shared.read_text(encoding="utf-8").strip() \
+            and not (score.is_file() and score.read_text(encoding="utf-8").strip()):
+        # Another take of the same cover already listened to the recording.
+        work.mkdir(parents=True, exist_ok=True)
+        tmp = work / "cover.abc.tmp"
+        tmp.write_text(shared.read_text(encoding="utf-8"), encoding="utf-8")
+        tmp.replace(score)
     if not (score.is_file() and score.read_text(encoding="utf-8").strip()):
         abc = backend.transcribe(msg["source_audio"], mode, work / "transcription", cancel)
         tmp = work / "cover.abc.tmp"

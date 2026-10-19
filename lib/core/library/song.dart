@@ -136,6 +136,9 @@ class Song {
   Map<String, dynamic> get cover => _map('cover');
 
   /// The recording a cover listens to (its copy in the song folder).
+  /// A cover whose recording was already transcribed (work/cover.abc).
+  bool get transcribed => File(p.join(dir, 'work', 'cover.abc')).existsSync();
+
   String? get coverSourcePath {
     final s = cover['source_audio'] as String?;
     if (s == null) return null;

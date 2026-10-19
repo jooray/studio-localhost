@@ -29,6 +29,17 @@ class Yue2Job(val dir: File, private val song: JSONObject) {
     val coverScore = File(work, "cover.abc")
     val coverMelodyOnly: Boolean get() = params.optString("mode") == "melody"
 
+    init {
+        // Takes of one cover share one transcription: a later take starts from the first one's score.
+        val from = cover.optString("score_from").takeIf { it.isNotEmpty() }?.let { File(it, "work/cover.abc") }
+        val shared = from?.readTextOrNull()
+        if (kind == "cover" && coverScore.readTextOrNull().isNullOrBlank() && !shared.isNullOrBlank()) {
+            val tmp = File(work, "cover.abc.tmp")
+            tmp.writeText(shared)
+            tmp.renameTo(coverScore)
+        }
+    }
+
     /** The cover still has to listen to its recording (no transcribed score yet). */
     val needsTranscription: Boolean get() = kind == "cover" && coverScore.readTextOrNull().isNullOrBlank()
 

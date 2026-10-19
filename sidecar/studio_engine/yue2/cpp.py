@@ -84,9 +84,57 @@ class Yue2CppBackend(Backend):
             if self.model.parent.is_dir() else []
         tool = (self.bin_dir / "yue-tokenize").is_file() or (self.bin_dir / "build/yue-tokenize").is_file()
         ok = bool(tok) and tool
+        cover = self._tool("yue-transcribe") is not None and self._transcriber() is not None
         return {"extend": True, "rerender": True, "tokenize_audio": ok,
                 "tokenize_reason": None if ok else
-                "Needs yue-tokenize plus the RealAudio tokenizer and MERT GGUFs next to the backbone."}
+                "Needs yue-tokenize plus the RealAudio tokenizer and MERT GGUFs next to the backbone.",
+                "cover": cover, "cover_reason": None if cover else
+                "Needs yue-transcribe plus the SheetSage2 and MERT GGUFs next to the backbone."}
+
+    def _tool(self, name):
+        for candidate in (self.bin_dir / name, self.bin_dir / "build" / name):
+            if candidate.is_file():
+                return candidate
+        return None
+
+    def _transcriber(self):
+        """SheetSage2 GGUF next to the backbone, with the MERT of the same quant beside it."""
+        d = self.model.parent
+        for head in sorted(d.glob("SheetSage2-*.gguf")) if d.is_dir() else []:
+            if (d / ("MERT-v2-FullSong" + head.name[len("SheetSage2"):])).is_file():
+                return head
+        return None
+
+    def transcribe(self, audio, mode, out_dir, cancel):
+        """yue-transcribe on the recording: the score it hears (ABC)."""
+        tool, head = self._tool("yue-transcribe"), self._transcriber()
+        if tool is None or head is None:
+            raise RuntimeError(self.capabilities()["cover_reason"])
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        score = out_dir / "score.abc"
+        score.unlink(missing_ok=True)
+        cmd = [str(tool), "--model", str(head), "--audio", str(audio), "--out", str(score)]
+        if mode == "melody":
+            cmd.append("--melody-only")
+        if self.device:
+            cmd += ["--device", self.device]
+        self.progress("listen", "Listening", 0, 1, "windows")
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1,
+                                cwd=str(out_dir), start_new_session=True)
+        threading.Thread(target=self._watch_cancel, args=(proc, cancel), daemon=True).start()
+        tail = []
+        for raw in proc.stdout:
+            line = raw.rstrip()
+            tail = (tail + [line])[-40:]
+            self._emit(event="log", line=line)
+        code = proc.wait()
+        if cancel.is_set():
+            raise Cancelled()
+        if code != 0 or not score.is_file():
+            raise RuntimeError(f"yue-transcribe exited with {code}:\n" + "\n".join(tail[-12:]))
+        self.progress("listen", "Listening", 1, 1, "windows")
+        return score.read_text(encoding="utf-8")
 
     # ------------------------------------------------------------------ process
 

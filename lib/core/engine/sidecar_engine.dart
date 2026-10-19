@@ -106,6 +106,7 @@ class SidecarEngine extends Engine {
       case 'cover':
         cmd = 'cover';
         args['source_audio'] = song.coverSourcePath;
+        if (song.cover['score_from'] is String) args['score_from'] = song.cover['score_from'];
         if (song.meta['resume'] == true) args['resume'] = true;
       default:
         cmd = 'generate';
