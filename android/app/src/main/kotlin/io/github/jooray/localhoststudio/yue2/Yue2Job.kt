@@ -61,6 +61,7 @@ class Yue2Job(val dir: File, private val song: JSONObject) {
         req.put("lm_seed", seed)
         req.put("seed", seed)
         req.put("steps", params.optInt("steps", 32))
+        if (params.has("cfg_scale") && !params.isNull("cfg_scale")) req.put("cfg_scale", params.optDouble("cfg_scale"))
         req.put("output_format", "mp3")
         req.put("mp3_bitrate", 192)
         when (kind) {

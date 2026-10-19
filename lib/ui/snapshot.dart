@@ -116,7 +116,7 @@ class SnapshotScreen extends StatelessWidget {
           String idOf(int n) => lib.byNumber(n)?.id ?? (lib.songs.isEmpty ? '' : lib.songs.first.id);
           return switch (shot?.screen) {
             'catalogue' => const CatalogueScreen(),
-            'sheet' => _SheetOpener(key: ValueKey(shot!.file)),
+            'sheet' || 'coversheet' => _SheetOpener(key: ValueKey(shot!.file)),
             'song' => SongScreen(idOf(14)),
             'rename' => SongScreen(idOf(14), startRename: true, key: ValueKey(shot!.file)),
             'rerender' => _RerenderOpener(idOf(14), key: ValueKey(shot!.file)),

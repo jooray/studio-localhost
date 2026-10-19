@@ -373,6 +373,9 @@ class TakePlot extends StatelessWidget {
         TakeMode.idle when s?.audioPath != null => (f) => _play(context, t, s!, f),
         _ => null,
       },
+      onCenterTap: (t.mode == TakeMode.playing || t.mode == TakeMode.idle) && s?.audioPath != null
+          ? () => context.read<AudioPlayerModel>().toggle(s!.audioPath!, title: t.library.fileTitle(s))
+          : null,
       semanticLabel: s == null ? 'Empty plot' : 'Plot of $number',
     );
   }

@@ -21,6 +21,7 @@ class PolarPlot extends StatefulWidget {
     this.mini = false,
     this.section,
     this.onSeek,
+    this.onCenterTap,
     this.semanticLabel,
   });
 
@@ -44,6 +45,9 @@ class PolarPlot extends StatefulWidget {
 
   /// Tap or drag around the plot to seek (0..1).
   final ValueChanged<double>? onSeek;
+
+  /// A touch in the hole the waveform rings (play/pause).
+  final VoidCallback? onCenterTap;
   final String? semanticLabel;
 
   @override
@@ -103,10 +107,23 @@ class _PolarPlotState extends State<PolarPlot> with SingleTickerProviderStateMix
     super.dispose();
   }
 
+  // The hole inside the waveform: 0.30 of the plot radius (see _PlotPainter), a little less so
+  // a touch on the waveform's inner edge still seeks.
+  static bool _inHole(Offset local, Size size) =>
+      (local - size.center(Offset.zero)).distance < size.shortestSide / 2 * 0.27;
+
+  void _tap(Offset local, Size size) {
+    if (_inHole(local, size)) {
+      widget.onCenterTap?.call();
+    } else {
+      _seek(local, size);
+    }
+  }
+
   void _seek(Offset local, Size size) {
+    if (widget.onSeek == null || _inHole(local, size)) return;
     final c = size.center(Offset.zero);
     final d = local - c;
-    if (d.distance < size.shortestSide * 0.12) return;
     var a = math.atan2(d.dx, -d.dy); // 0 at top, clockwise
     if (a < 0) a += 2 * math.pi;
     widget.onSeek?.call(a / (2 * math.pi));
@@ -138,13 +155,13 @@ class _PolarPlotState extends State<PolarPlot> with SingleTickerProviderStateMix
         ),
       ),
     );
-    if (widget.onSeek != null) {
+    if (widget.onSeek != null || widget.onCenterTap != null) {
       final face = plot;
       plot = LayoutBuilder(
         builder: (_, c) => GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTapUp: (d) => _seek(d.localPosition, c.biggest),
-          onPanUpdate: (d) => _seek(d.localPosition, c.biggest),
+          onTapUp: (d) => _tap(d.localPosition, c.biggest),
+          onPanUpdate: widget.onSeek == null ? null : (d) => _seek(d.localPosition, c.biggest),
           child: face,
         ),
       );

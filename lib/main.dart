@@ -121,6 +121,9 @@ Future<void> main() async {
           if (!t.existsSync()) t.writeAsStringSync('1,2,3');
         }
       }
+      // The recording settings of a cover (the recording need not exist for the picture).
+      form.coverPath = shot.screen == 'coversheet' ? '/demo/hymna_sr_spev.mp3' : null;
+      form.coverStyle = shot.screen == 'coversheet' ? 1.3 : 1.0;
       if (shot.screen == 'reuse') {
         final src = library.byNumber(14);
         if (src != null) form.reuse(src, label: 'From LRS-014');

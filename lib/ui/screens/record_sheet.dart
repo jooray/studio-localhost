@@ -504,6 +504,71 @@ class _CoverRow extends StatelessWidget {
             text: (v) => v == 'full' ? 'score' : 'melody',
             onSelect: (v) => f.update(() => f.coverMode = v),
           ),
+        if (f.covering) _StyleStrengthRow(f),
+      ],
+    );
+  }
+}
+
+/// A cover's style strength, stepped by 0.1: how hard the style and words pull against the
+/// recording's score.
+class _StyleStrengthRow extends StatelessWidget {
+  const _StyleStrengthRow(this.f);
+  final GenerateForm f;
+
+  @override
+  Widget build(BuildContext context) {
+    final u = SleeveScale.of(context);
+    final r = GenerateForm.coverStyleRange;
+    void step(int dir) => f.update(() => f.coverStyle = ((f.coverStyle * 10).round() + dir).clamp(r.min * 10, r.max * 10) / 10);
+    final v = f.coverStyle;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 10 * u),
+          child: Row(
+            children: [
+              SizedBox(width: 120 * u, child: Etched('Style', size: 12, color: Sleeve.inkMute)),
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: Cell(
+                  onTap: v > r.min ? () => step(-1) : null,
+                  semanticLabel: 'Less style',
+                  child: const GlyphIcon(Glyph.minus, size: 16),
+                ),
+              ),
+              SizedBox(
+                width: 92 * u + 8,
+                child: Text(v.toStringAsFixed(1), textAlign: TextAlign.center, style: SleeveType.value(u, size: 16)),
+              ),
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: Cell(
+                  onTap: v < r.max ? () => step(1) : null,
+                  semanticLabel: 'More style',
+                  child: const GlyphIcon(Glyph.plus, size: 16),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(left: 120 * u, bottom: 10 * u),
+          child: Etched(
+            v == 1.0
+                ? 'The style and the recording count evenly.'
+                : v > 1.0
+                    ? 'Your style and words pull harder than the recording. Composing takes about twice as long.'
+                    : 'Leans on the recording; your style and words count less. Composing takes about twice as long.',
+            size: 11,
+            color: Sleeve.inkMute,
+            maxLines: 3,
+          ),
+        ),
+        const Rule(color: Sleeve.ruleFaint),
       ],
     );
   }

@@ -352,17 +352,20 @@ class JobQueue extends ChangeNotifier {
 
   /// How long a song of [seconds] at [steps] would take on this device, before it is queued.
   /// [compose] false: a re-render (the composed tokens are reused).
-  Duration estimate({required double seconds, required int steps, String? precision, bool compose = true}) {
+  /// [guided]: a style strength other than 1 composes with two branches (about 1.8x as long).
+  Duration estimate({required double seconds, required int steps, String? precision, bool compose = true, bool guided = false}) {
     final r = _rates(precision);
     final frames = seconds * (studio.model?.limits.frameRate ?? 25);
-    final t = (compose ? frames / r.tps : 0) + frames * steps * r.nar + frames * r.vae;
+    final t = (compose ? frames / r.tps * (guided ? guidedCost : 1) : 0) + frames * steps * r.nar + frames * r.vae;
     return Duration(seconds: t.round());
   }
+
+  static const guidedCost = 1.8;
 
   void _updateEta(Song s, LiveJob j) {
     final steps = s.solveSteps;
     final rates = _rates(s.precision);
-    final tps = rates.tps, narRate = rates.nar, vaeRate = rates.vae;
+    final tps = rates.tps / (s.guided ? guidedCost : 1), narRate = rates.nar, vaeRate = rates.vae;
     final done = j.done ?? 0;
     final sinceMove = DateTime.now().difference(j.lastMoveAt).inMilliseconds / 1000;
     // Time for the units still to come, at the pace measured in this stage (or [fallback] seconds
@@ -413,7 +416,9 @@ class JobQueue extends ChangeNotifier {
     final frames = (s.meta['token_frames'] as num?)?.toDouble() ?? 0;
     if (st is! Map || frames <= 0 || s.meta['resume'] == true) return;
     final sem = st['semantic'], nar = st['nar'], vae = st['vae'];
-    if ((s.kind == 'generate' || s.kind == 'cover') && sem is num && sem > 1) studio.settings.setCalib('ar_tps-$_key-${s.precision ?? 'q'}', frames / sem);
+    if ((s.kind == 'generate' || s.kind == 'cover') && sem is num && sem > 1) {
+      studio.settings.setCalib('ar_tps-$_key-${s.precision ?? 'q'}', frames / sem * (s.guided ? guidedCost : 1));
+    }
     if (s.kind == 'extend') return;
     if (nar is num && nar > 0) studio.settings.setCalib('nar_spfs-$_key', nar / (frames * s.solveSteps));
     if (vae is num && vae > 0) studio.settings.setCalib('vae_spf-$_key', vae / frames);

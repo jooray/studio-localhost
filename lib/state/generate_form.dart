@@ -91,6 +91,7 @@ class GenerateForm extends ChangeNotifier {
       coverPath = source;
       coverName = s.cover['source_name'] as String? ?? p.basename(source);
       coverMode = params['mode'] == 'melody' ? 'melody' : 'full';
+      coverStyle = s.styleStrength;
     } else {
       coverPath = coverName = null;
     }
@@ -157,6 +158,11 @@ class GenerateForm extends ChangeNotifier {
   /// full: the recording's melody and chords; melody: its melody alone.
   String coverMode = 'full';
 
+  /// A cover's style strength: how hard the style and words pull against the recording's score
+  /// (1: evenly; the engine's classifier-free guidance scale).
+  double coverStyle = 1.0;
+  static const coverStyleRange = (min: 0.5, max: 2.0);
+
   bool get covering => coverPath != null;
 
   void update(void Function() f) {
@@ -189,11 +195,18 @@ class GenerateForm extends ChangeNotifier {
 
   /// How long recording at [s] steps would take on this device (all takes).
   Duration estimateFor(int s) =>
-      queue.estimate(seconds: lengthSeconds, steps: s, precision: precisions.contains(precision) ? precision : null) * variants;
+      queue.estimate(
+        seconds: lengthSeconds,
+        steps: s,
+        precision: precisions.contains(precision) ? precision : null,
+        guided: covering && (coverStyle - 1).abs() > 1e-6,
+      ) *
+      variants;
 
   /// The etched summary of the recording settings: quality, then length and time.
   String get summary => [
         if (covering) 'COVER',
+        if (covering && coverStyle != 1.0) 'STYLE ${coverStyle.toStringAsFixed(1)}',
         presetOf(steps)?.toUpperCase() ?? '$steps STEPS',
         limitLength ? formatDuration(maxSeconds) : 'FULL',
         formatEstimate(estimateFor(steps)),
@@ -243,6 +256,7 @@ class GenerateForm extends ChangeNotifier {
             'style': style.text.trim(),
             'lyrics': lyrics.text,
             'mode': coverMode,
+            'cfg_scale': coverStyle,
             'seed': s,
             'steps': steps,
             if (precisions.isNotEmpty) 'precision': precisions.contains(precision) ? precision : precisions.first,

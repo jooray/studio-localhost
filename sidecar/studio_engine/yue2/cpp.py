@@ -245,6 +245,8 @@ class Yue2CppBackend(Backend):
         request = self._base_request(shaped, args)
         if args.get("max_seconds"):
             request["duration"] = float(args["max_seconds"])
+        if args.get("cfg_scale") is not None:
+            request["cfg_scale"] = float(args["cfg_scale"])
         work = tmpdir("yue2cpp-")
         t0 = time.perf_counter()
         try:

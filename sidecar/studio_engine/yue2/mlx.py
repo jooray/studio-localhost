@@ -301,7 +301,8 @@ class MLXBackend(Backend):
         pipe = self._pipeline(args.get("precision") or "bf16")
         self._config(pipe, args.get("steps") or 32)
         request = SongRequest(style=shaped["style"], lyrics=shaped["lyrics"], cot=shaped["cot"],
-                              seed=int(args["seed"]), abc=shaped["abc"], id=args.get("request_id") or "song")
+                              seed=int(args["seed"]), abc=shaped["abc"], cfg_scale=args.get("cfg_scale"),
+                              id=args.get("request_id") or "song")
         max_tokens = SEMANTIC_MAX_TOKENS
         if args.get("max_seconds"):
             max_tokens = max(1, min(SEMANTIC_MAX_TOKENS, int(round(float(args["max_seconds"]) * FRAME_RATE))))

@@ -136,6 +136,10 @@ class Song {
   Map<String, dynamic> get cover => _map('cover');
 
   /// The recording a cover listens to (its copy in the song folder).
+  /// How strongly the style and words pull against the score (classifier-free guidance; 1: off).
+  double get styleStrength => (params['cfg_scale'] as num?)?.toDouble() ?? 1.0;
+  bool get guided => (styleStrength - 1).abs() > 1e-6;
+
   /// A cover whose recording was already transcribed (work/cover.abc).
   bool get transcribed => File(p.join(dir, 'work', 'cover.abc')).existsSync();
 
