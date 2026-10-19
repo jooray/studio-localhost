@@ -6,7 +6,9 @@ import '../../core/library/envelopes.dart';
 import '../../core/library/song.dart';
 import '../../core/paths.dart';
 import '../../core/player.dart';
+import '../../state/generate_form.dart';
 import '../../state/library_view.dart';
+import '../../state/take.dart';
 import '../frame.dart';
 import '../routes.dart';
 import '../theme.dart';
@@ -54,20 +56,82 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
           ),
           const Rule(color: Sleeve.ruleFaint),
           Expanded(
-            child: songs.isEmpty
-                ? Padding(
-                    padding: EdgeInsets.all(25 * u),
-                    child: Etched(v.filter.isEmpty ? 'No entries yet. Record one from the studio.' : 'Nothing matches.', size: 12, maxLines: 3),
-                  )
-                : ListView.builder(
-                    itemCount: songs.length,
-                    itemExtent: 104,
-                    itemBuilder: (_, i) => CatalogueRow(songs[i], key: ValueKey(songs[i].dir)),
-                  ),
+            child: Builder(builder: (context) {
+              // The next number already has its sleeve: an empty disc at the head of the list.
+              final blank = v.filter.isEmpty;
+              final lead = blank ? 1 : 0;
+              if (!blank && songs.isEmpty) {
+                return Padding(padding: EdgeInsets.all(25 * u), child: Etched('Nothing matches.', size: 12, maxLines: 3));
+              }
+              return ListView.builder(
+                // The page header already clears the status bar.
+                padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+                itemCount: songs.length + lead,
+                itemExtent: 104,
+                itemBuilder: (_, i) => blank && i == 0 ? const NewEntryRow() : CatalogueRow(songs[i - lead], key: ValueKey(songs[i - lead].dir)),
+              );
+            }),
           ),
         ]);
       }),
     );
+  }
+}
+
+/// The next catalogue number as an unrecorded sleeve: opens the studio on the draft.
+class NewEntryRow extends StatelessWidget {
+  const NewEntryRow({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final take = context.watch<TakeState>();
+    final form = context.watch<GenerateForm>();
+    final u = SleeveScale.of(context);
+    final n = Catalogue.format(take.nextNumber);
+    final seed = int.tryParse(form.seed.text) ?? 0;
+    return Column(children: [
+      Expanded(
+        child: Cell(
+          frame: false,
+          onTap: () {
+            take.draft();
+            openStudio(context);
+          },
+          semanticLabel: 'New entry, $n',
+          padding: EdgeInsets.only(left: 18 * u, right: 16 * u),
+          child: Row(children: [
+            SizedBox.square(dimension: 76, child: PolarPlot(envelope: null, mini: true, seed: seed)),
+            SizedBox(width: 18 * u),
+            Expanded(
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(
+                  'New entry',
+                  maxLines: 1,
+                  style: SleeveType.body(u).copyWith(fontSize: 17, height: 1.2, fontWeight: FontWeight.w400),
+                ),
+                const SizedBox(height: 6),
+                Row(children: [
+                  Text(n, style: SleeveType.value(u, size: 12, color: Sleeve.inkSoft)),
+                  SizedBox(width: 12 * u),
+                  SizedBox(width: 48, child: CodeStripView(seed, height: 6)),
+                  SizedBox(width: 12 * u),
+                  Expanded(
+                    child: Text(
+                      form.hasWords ? 'draft in the studio' : 'blank',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: SleeveType.body(u, color: Sleeve.inkMute).copyWith(fontSize: 13, height: 1.2),
+                    ),
+                  ),
+                ]),
+              ]),
+            ),
+            GlyphIcon(Glyph.plus, size: 20, color: Sleeve.ink),
+          ]),
+        ),
+      ),
+      const Rule(color: Sleeve.ruleFaint),
+    ]);
   }
 }
 

@@ -5,6 +5,7 @@ import '../../core/library/catalogue.dart';
 import '../../core/library/library.dart';
 import '../../core/library/song.dart';
 import '../../state/generate_form.dart';
+import '../../state/take.dart';
 import '../routes.dart';
 import '../theme.dart';
 import 'sleeve.dart';
@@ -44,6 +45,7 @@ Future<void> reuseSong(BuildContext context, Song song) async {
     if (ok != true || !context.mounted) return;
   }
   form.reuse(song, label: 'From $n');
+  context.read<TakeState>().draft();
   if (context.mounted) openStudio(context);
 }
 

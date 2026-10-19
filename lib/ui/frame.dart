@@ -195,7 +195,8 @@ class SleevePage extends StatelessWidget {
     final pad = MediaQuery.paddingOf(context);
     final w = MediaQuery.sizeOf(context).width;
     final u = w < 600 ? (w / 576).clamp(0.62, 1.0) : 1.0;
-    final canPop = Navigator.of(context).canPop();
+    // Whether this page has one below it (the navigator as a whole can pop even on the first page).
+    final canPop = ModalRoute.of(context)?.canPop ?? false;
     Widget content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

@@ -8,8 +8,9 @@ import '../core/settings.dart';
 import '../core/studio.dart';
 import '../core/update_check.dart';
 import '../state/nav.dart';
+import 'routes.dart';
+import 'screens/catalogue_screen.dart';
 import 'screens/setup_screen.dart';
-import 'screens/studio_screen.dart';
 import 'snapshot.dart';
 import 'theme.dart';
 import 'widgets/sleeve.dart';
@@ -77,6 +78,33 @@ class _Root extends StatelessWidget {
     if (Snapshot.active) return const SnapshotScreen();
     final studio = context.watch<Studio>();
     final nav = context.watch<AppNav>();
-    return studio.needsSetup || nav.setupOpen ? const SetupScreen() : const StudioScreen();
+    return studio.needsSetup || nav.setupOpen ? const SetupScreen() : const _Home();
   }
+}
+
+/// The catalogue as the first page with the studio opened on top at launch: the app starts in
+/// the studio, and back from it reaches the whole catalogue.
+class _Home extends StatefulWidget {
+  const _Home();
+
+  @override
+  State<_Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<_Home> {
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).push(studioRoute(instant: true));
+      setState(() => _ready = true);
+    });
+  }
+
+  // Bare ground for the one frame before the studio covers the catalogue.
+  @override
+  Widget build(BuildContext context) => _ready ? const CatalogueScreen() : const ColoredBox(color: Sleeve.ground);
 }

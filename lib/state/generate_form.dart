@@ -88,6 +88,28 @@ class GenerateForm extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Blank the words for a new song from scratch. Returns what was there, for undo.
+  Map<String, String> clearWords() {
+    final was = {'title': title.text, 'style': style.text, 'lyrics': lyrics.text, 'abc': abc.text};
+    for (final c in [title, style, lyrics, abc]) {
+      c.clear();
+    }
+    fromLabel = null;
+    reuseSeed = null;
+    sameSeed = false;
+    notifyListeners();
+    return was;
+  }
+
+  void restoreWords(Map<String, String> was) {
+    title.text = was['title'] ?? '';
+    style.text = was['style'] ?? '';
+    lyrics.text = was['lyrics'] ?? '';
+    abc.text = was['abc'] ?? '';
+    showAbc = abc.text.trim().isNotEmpty;
+    notifyListeners();
+  }
+
   final Studio studio;
   final JobQueue queue;
   final title = TextEditingController();

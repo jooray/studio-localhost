@@ -16,6 +16,7 @@ import '../routes.dart';
 import '../theme.dart';
 import '../widgets/polar_plot.dart';
 import '../widgets/sleeve.dart';
+import '../widgets/song_actions.dart';
 import 'record_sheet.dart';
 
 /// The main screen: the take as a living polar plot, its status line, the style and lyric sheet
@@ -97,7 +98,10 @@ class _PhoneStudioState extends State<_PhoneStudio> {
                   child: SizedBox(
                     height: 465 * u,
                     child: Stack(
-                      children: [Positioned(left: 90 * u, top: 35 * u, width: 396 * u, height: 396 * u, child: const TakePlot())],
+                      children: [
+                        Positioned(left: 90 * u, top: 35 * u, width: 396 * u, height: 396 * u, child: const TakePlot()),
+                        Positioned(left: 8 * u, top: 4 * u, child: const _AllButton()),
+                      ],
                     ),
                   ),
                 ),
@@ -107,8 +111,14 @@ class _PhoneStudioState extends State<_PhoneStudio> {
                 ),
                 SliverToBoxAdapter(
                   child: SizedBox(
-                    height: 115 * u,
-                    child: Padding(padding: EdgeInsets.fromLTRB(55 * u, 8 * u, 55 * u, 0), child: const StyleBlock()),
+                    height: 50 * u,
+                    child: Padding(padding: EdgeInsets.fromLTRB(55 * u, 0, 40 * u, 0), child: const SheetHeader()),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 107 * u,
+                    child: Padding(padding: EdgeInsets.fromLTRB(55 * u, 0, 55 * u, 0), child: const StyleBlock()),
                   ),
                 ),
                 SliverToBoxAdapter(child: Rule(indent: side)),
@@ -134,7 +144,7 @@ class _PhoneStudioState extends State<_PhoneStudio> {
             padding: EdgeInsets.symmetric(horizontal: side),
             child: SizedBox(
               height: recordH,
-              child: RecordRow(joined: !typing, withIndex: true),
+              child: RecordRow(joined: !typing),
             ),
           ),
           SizedBox(height: typing ? 0 : pad.bottom),
@@ -211,7 +221,7 @@ class _WideStudio extends StatelessWidget {
     final bandH = math.max(56 * u, 48.0);
     final style = SizedBox(
       height: wideTopBand,
-      child: Padding(padding: EdgeInsets.fromLTRB(side, 18, side, 8), child: const StyleBlock(lines: 2)),
+      child: Padding(padding: EdgeInsets.fromLTRB(side, 18, side, 8), child: const StyleBlock(lines: 2, inlineHeader: true)),
     );
     final lyrics = Padding(padding: EdgeInsets.fromLTRB(side, 22 * u, side, 12 * u), child: const LyricsBlock());
     final status = Padding(
@@ -281,7 +291,7 @@ class _WideStudio extends StatelessWidget {
       );
     } else {
       // One column, same reading order as desktop: plot, status, then the writing together.
-            body = Column(
+      body = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Same band height as the index header on every wide layout, so the first rules align.
@@ -289,7 +299,10 @@ class _WideStudio extends StatelessWidget {
             height: wideTopBand,
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: side),
-              child: const Align(alignment: Alignment.centerLeft, child: Etched('Studio', size: 13, color: Sleeve.ink)),
+              child: const Align(
+                alignment: Alignment.centerLeft,
+                child: Etched('Studio', size: 13, color: Sleeve.ink),
+              ),
             ),
           ),
           const Rule(),
@@ -303,7 +316,7 @@ class _WideStudio extends StatelessWidget {
           const Rule(),
           SizedBox(height: bandH, child: status),
           const Rule(),
-          Padding(padding: EdgeInsets.fromLTRB(side, 18, side, 14), child: const StyleBlock(lines: 2)),
+          Padding(padding: EdgeInsets.fromLTRB(side, 18, side, 14), child: const StyleBlock(lines: 2, inlineHeader: true)),
           const Rule(),
           Expanded(child: lyrics),
           const _WideQueue(),
@@ -455,37 +468,119 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) => ExcludeSemantics(child: Text(text, style: SleeveType.label(SleeveScale.of(context))));
 }
 
+/// Whose words the sheet holds: the next number while drafting, else the shown song.
+class SheetHeader extends StatelessWidget {
+  const SheetHeader({super.key, this.inline = false});
+
+  /// Sits on the STYLE row (wide layouts) instead of its own band.
+  final bool inline;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.watch<TakeState>();
+    final from = context.select<GenerateForm, String?>((f) => f.fromLabel);
+    final s = t.sheetSong;
+    final size = inline ? 11.0 : 13.0;
+    final Widget lead;
+    if (s == null) {
+      lead = Etched('Next · ${Catalogue.format(t.nextNumber)}', size: size, color: Sleeve.ink, weight: FontWeight.w500);
+    } else {
+      // The status line above already names the song; this says the words are its record.
+      lead = Etched('${Catalogue.format(t.number(s))} · as recorded', size: size, color: Sleeve.inkMute);
+    }
+    // Quiet provenance of a reused prompt, until the user records or edits.
+    final provenance = s == null && from != null ? Etched(from, size: 11, color: Sleeve.inkMute) : null;
+    if (inline) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (provenance != null) ...[Flexible(child: provenance), SizedBox(width: 12 * SleeveScale.of(context))],
+          lead,
+        ],
+      );
+    }
+    if (provenance == null) return Row(children: [Flexible(child: lead)]);
+    // The number leads in full; the provenance gives way first.
+    return Row(
+      children: [
+        lead,
+        SizedBox(width: 12 * SleeveScale.of(context)),
+        Expanded(child: Align(alignment: Alignment.centerRight, child: provenance)),
+      ],
+    );
+  }
+}
+
+/// A song's own words in the sheet: read-only, a step quieter than a draft. Touching them
+/// starts a new draft from this song (Reuse).
+class _SheetWords extends StatelessWidget {
+  const _SheetWords(this.song, this.text, {this.style, this.maxLines, this.label = 'Words'});
+  final Song song;
+  final String text;
+  final TextStyle? style;
+  final int? maxLines;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final u = SleeveScale.of(context);
+    return Semantics(
+      button: true,
+      label: '$label of ${Catalogue.format(context.read<TakeState>().number(song))}',
+      hint: 'Write a new song from these words',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => reuseSong(context, song),
+        child: ExcludeSemantics(
+          child: text.trim().isEmpty
+              ? Etched('none', size: 12, color: Sleeve.inkMute)
+              : Text(
+                  text.trim(),
+                  maxLines: maxLines,
+                  overflow: maxLines == null ? null : TextOverflow.ellipsis,
+                  style: style ?? SleeveType.body(u, color: Sleeve.inkSoft),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
 class StyleBlock extends StatelessWidget {
-  const StyleBlock({super.key, this.lines = 2});
+  const StyleBlock({super.key, this.lines = 2, this.inlineHeader = false});
   final int lines;
+
+  /// Wide layouts carry the sheet header on the STYLE row.
+  final bool inlineHeader;
 
   @override
   Widget build(BuildContext context) {
     final f = context.read<GenerateForm>();
+    final song = context.select<TakeState, Song?>((t) => t.sheetSong);
     final u = SleeveScale.of(context);
     final body = SleeveType.body(u);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(children: [
-          const _FieldLabel('STYLE'),
-          const Spacer(),
-          // Quiet provenance of a reused prompt, until the user records or edits.
-          Selector<GenerateForm, String?>(
-            selector: (_, f) => f.fromLabel,
-            builder: (_, from, _) => from == null ? const SizedBox.shrink() : Etched(from, size: 11, color: Sleeve.inkMute),
-          ),
-        ]),
-        SizedBox(height: 7 * u),
-        SleeveField(
-          controller: f.style,
-          style: body,
-          maxLines: lines,
-          minLines: 1,
-          hint: 'genre, mood, instruments, voice',
-          semanticLabel: 'Style',
+        Row(
+          children: [
+            const _FieldLabel('STYLE'),
+            if (inlineHeader) const Expanded(child: SheetHeader(inline: true)),
+          ],
         ),
+        SizedBox(height: 7 * u),
+        if (song != null)
+          _SheetWords(song, song.style, maxLines: lines, label: 'Style')
+        else
+          SleeveField(
+            controller: f.style,
+            style: body,
+            maxLines: lines,
+            minLines: 1,
+            hint: 'genre, mood, instruments, voice',
+            semanticLabel: 'Style',
+          ),
       ],
     );
   }
@@ -501,7 +596,30 @@ class LyricsBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final f = context.read<GenerateForm>();
     final u = SleeveScale.of(context);
-    final instrumental = context.select<GenerateForm, bool>((f) => f.instrumental);
+    final song = context.select<TakeState, Song?>((t) => t.sheetSong);
+    final draftInstrumental = context.select<GenerateForm, bool>((f) => f.instrumental);
+    final instrumental = song?.instrumental ?? draftInstrumental;
+    if (song != null) {
+      final words = _SheetWords(
+        song,
+        song.lyrics,
+        label: 'Lyrics',
+        style: SleeveType.body(u, color: instrumental ? Sleeve.inkMute : Sleeve.inkSoft),
+      );
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const _FieldLabel('LYRICS'),
+              if (instrumental) ...[SizedBox(width: 16 * u), Etched('instrumental', size: 12, color: Sleeve.inkMute)],
+            ],
+          ),
+          SizedBox(height: 10 * u),
+          if (grow) words else Expanded(child: SingleChildScrollView(child: words)),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -547,7 +665,8 @@ class CurrentStrip extends StatelessWidget {
     final t = context.watch<TakeState>();
     final f = context.watch<GenerateForm>();
     final u = SleeveScale.of(context);
-    final seed = t.current?.codeSeed ?? int.tryParse(f.seed.text) ?? 0;
+    // The strip belongs to the sheet: the shown song's code, or the next one's while drafting.
+    final seed = (t.drafting ? null : t.current?.codeSeed) ?? int.tryParse(f.seed.text) ?? 0;
     return AnimatedSwitcher(
       duration: MediaQuery.of(context).disableAnimations ? Duration.zero : Sleeve.step,
       switchInCurve: Sleeve.ease,
@@ -615,7 +734,7 @@ class IndexBar extends StatelessWidget {
 
 /// Record (joined under the index) and the etched settings cell.
 class RecordRow extends StatelessWidget {
-  const RecordRow({super.key, this.joined = true, this.framed = true, this.withIndex = false});
+  const RecordRow({super.key, this.joined = true, this.framed = true});
 
   /// Joined under the index bar (shares its bottom rule).
   final bool joined;
@@ -623,20 +742,19 @@ class RecordRow extends StatelessWidget {
   /// Hairline frame around the cells (off when the row sits in a ruled band).
   final bool framed;
 
-  /// Phone: an ALL cell that opens the whole catalogue closes the row.
-  final bool withIndex;
-
   @override
   Widget build(BuildContext context) {
     final t = context.watch<TakeState>();
     final f = context.watch<GenerateForm>();
     final u = SleeveScale.of(context);
     final busy = t.mode == TakeMode.recording || t.mode == TakeMode.waiting;
+    final shown = t.sheetSong;
     // Ready whenever there is something to record; without an engine, Record routes to setup.
     final ready = f.hasWords;
     final next = Catalogue.format(t.nextNumber);
     final n = f.variants;
-    final label = '${busy ? 'QUEUE' : 'RECORD'} ${n > 1 ? '$next +${n - 1}' : next}';
+    // While a song is shown, the first cell opens the draft; while drafting, it records it.
+    final label = shown != null ? 'NEW $next' : '${busy ? 'QUEUE' : 'RECORD'} ${n > 1 ? '$next +${n - 1}' : next}';
     final sides = framed ? CellSides(top: !joined) : const CellSides.none();
     final summary = f.summary.split(' · ');
     final small = SleeveType.etched(u, size: 11, color: Sleeve.inkSoft);
@@ -646,10 +764,10 @@ class RecordRow extends StatelessWidget {
         Expanded(
           flex: 2,
           child: Cell(
-            block: ready && !busy,
+            block: shown == null && ready && !busy,
             sides: sides,
-            onTap: () => record(context),
-            semanticLabel: label,
+            onTap: shown != null ? t.draft : () => record(context),
+            semanticLabel: shown != null ? 'New song, $next' : label,
             alignment: Alignment.centerLeft,
             padding: EdgeInsets.only(left: 18 * u, right: 8 * u),
             minHeight: 0,
@@ -657,12 +775,12 @@ class RecordRow extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: SleeveType.etched(u, size: 15, color: ready ? Sleeve.ink : Sleeve.inkMute, weight: FontWeight.w500),
+              style: SleeveType.etched(u, size: 15, color: ready || shown != null ? Sleeve.ink : Sleeve.inkMute, weight: FontWeight.w500),
             ),
           ),
         ),
         Expanded(
-          flex: withIndex ? 1 : 2,
+          flex: 1,
           child: Cell(
             sides: framed ? CellSides(top: !joined, left: false) : const CellSides(left: true, top: false, right: false, bottom: false),
             onTap: () => showRecordSheet(context),
@@ -670,36 +788,37 @@ class RecordRow extends StatelessWidget {
             semanticLabel: 'Recording settings: ${f.summary}',
             minHeight: 0,
             padding: EdgeInsets.symmetric(horizontal: 6 * u),
-            child: withIndex
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(summary.first, maxLines: 1, overflow: TextOverflow.clip, softWrap: false, style: small),
-                      Text(summary.skip(1).join(' · '), maxLines: 1, overflow: TextOverflow.clip, softWrap: false, style: small),
-                    ],
-                  )
-                : Text(f.summary, maxLines: 1, overflow: TextOverflow.ellipsis, style: small),
-          ),
-        ),
-        if (withIndex)
-          Expanded(
-            flex: 1,
-            child: Cell(
-              sides: CellSides(top: !joined, left: false),
-              onTap: () => openCatalogue(context),
-              tooltip: 'Whole catalogue',
-              semanticLabel: 'Catalogue',
-              minHeight: 0,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GlyphIcon(Glyph.catalogue, size: math.max(16, 20 * u), color: Sleeve.inkSoft),
-                  SizedBox(width: 8 * u),
-                  Text('ALL', style: SleeveType.etched(u, size: 13, color: Sleeve.ink)),
-                ],
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(summary.first, maxLines: 1, overflow: TextOverflow.clip, softWrap: false, style: small),
+                Text(summary.skip(1).join(' · '), maxLines: 1, overflow: TextOverflow.clip, softWrap: false, style: small),
+              ],
             ),
           ),
+        ),
+        // Reuse the shown song's words, or clear the draft for a song from scratch.
+        Expanded(
+          flex: 1,
+          child: Cell(
+            sides: framed ? CellSides(top: !joined, left: false) : const CellSides(left: true, top: false, right: false, bottom: false),
+            onTap: shown != null ? () => reuseSong(context, shown) : (ready ? () => clearDraft(context) : null),
+            tooltip: shown != null ? 'Write a new song from these words' : 'Clear the sheet',
+            semanticLabel: shown != null ? 'Reuse' : 'Clear',
+            minHeight: 0,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GlyphIcon(shown != null ? Glyph.reuse : Glyph.close, size: math.max(16, 20 * u), color: Sleeve.inkSoft),
+                SizedBox(width: 8 * u),
+                Text(
+                  shown != null ? 'REUSE' : 'CLEAR',
+                  style: SleeveType.etched(u, size: 13, color: shown != null || ready ? Sleeve.ink : Sleeve.inkMute),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -720,8 +839,41 @@ Future<void> record(BuildContext context) async {
   }
   try {
     await f.submit();
+    if (context.mounted) context.read<TakeState>().listen();
   } catch (e) {
     if (context.mounted) showLine(context, 'Could not queue: ${shortError(e)}', error: true);
+  }
+}
+
+/// Blank the draft for a song from scratch, with a way back.
+void clearDraft(BuildContext context) {
+  final f = context.read<GenerateForm>();
+  final was = f.clearWords();
+  showLine(context, 'Sheet cleared', action: 'Undo', onAction: () => f.restoreWords(was));
+}
+
+/// Phone: back to the whole catalogue, which sits under the studio (the back gesture goes there too).
+class _AllButton extends StatelessWidget {
+  const _AllButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final u = SleeveScale.of(context);
+    return Cell(
+      frame: false,
+      onTap: () => openCatalogue(context),
+      tooltip: 'Whole catalogue',
+      semanticLabel: 'All songs',
+      padding: EdgeInsets.only(left: 4 * u, right: 12 * u),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GlyphIcon(Glyph.back, size: 22, color: Sleeve.inkSoft),
+          SizedBox(width: 2 * u),
+          Text('ALL', style: SleeveType.etched(u, size: 13, color: Sleeve.ink)),
+        ],
+      ),
+    );
   }
 }
 

@@ -27,9 +27,42 @@ class IndexEntry {
 /// its status line, the progress arc and the catalogue index around it. Pure state, no widgets.
 class TakeState extends ChangeNotifier {
   TakeState(this.studio, this.library, this.queue, this.player, this.envelopes) {
-    for (final l in <Listenable>[studio, library, queue, player, envelopes]) {
+    for (final l in <Listenable>[studio, library, queue, envelopes]) {
       l.addListener(notifyListeners);
     }
+    player.addListener(_onPlayer);
+  }
+
+  bool _drafting = false;
+  bool _wasPlaying = false;
+
+  /// The sheet under the plot holds the draft for the next song (editable). Otherwise it shows
+  /// the current song's own words, read-only. With no song at all there is only the draft.
+  bool get drafting => _drafting || current == null;
+
+  /// The song whose words the sheet shows, or null while drafting.
+  Song? get sheetSong => drafting ? null : current;
+
+  /// Open the draft for the next song.
+  void draft() {
+    if (_drafting) return;
+    _drafting = true;
+    notifyListeners();
+  }
+
+  /// Let the sheet follow the current song again (after Record, or when playback starts).
+  void listen() {
+    if (!_drafting) return;
+    _drafting = false;
+    notifyListeners();
+  }
+
+  void _onPlayer() {
+    final p = player.playing;
+    // Starting playback is choosing a song to listen to: the sheet follows it.
+    if (p && !_wasPlaying) _drafting = false;
+    _wasPlaying = p;
+    notifyListeners();
   }
 
   final Studio studio;
@@ -187,9 +220,10 @@ class TakeState extends ChangeNotifier {
 
   @override
   void dispose() {
-    for (final l in <Listenable>[studio, library, queue, player, envelopes]) {
+    for (final l in <Listenable>[studio, library, queue, envelopes]) {
       l.removeListener(notifyListeners);
     }
+    player.removeListener(_onPlayer);
     super.dispose();
   }
 }

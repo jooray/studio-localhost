@@ -102,6 +102,12 @@ Future<void> main() async {
     final original = form.lyrics.text;
     Snapshot.prepare = (shot) async {
       studioScrollToEnd.value = shot.screen == 'mainlong';
+      // The sheet: the draft for the next song, or the shown song's own words.
+      if (shot.screen == 'draft' || shot.screen == 'reuse') {
+        take.draft();
+      } else {
+        take.listen();
+      }
       if (shot.screen != 'reuse') form.lyrics.text = shot.screen == 'mainlong' ? Demo.forty() : original;
       if (shot.screen == 'reuse') {
         final src = library.byNumber(14);

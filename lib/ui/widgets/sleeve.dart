@@ -478,7 +478,7 @@ class DataList extends StatelessWidget {
 }
 
 /// Toast-like feedback in the world's voice.
-void showLine(BuildContext context, String text, {bool error = false}) {
+void showLine(BuildContext context, String text, {bool error = false, String? action, VoidCallback? onAction}) {
   final m = ScaffoldMessenger.maybeOf(context);
   m?.hideCurrentSnackBar();
   m?.showSnackBar(SnackBar(
@@ -486,7 +486,8 @@ void showLine(BuildContext context, String text, {bool error = false}) {
       if (error) ...[const HollowMark(size: 8), const SizedBox(width: 10)],
       Expanded(child: Text(text.toUpperCase())),
     ]),
-    duration: Duration(seconds: error ? 6 : 3),
+    action: action == null ? null : SnackBarAction(label: action.toUpperCase(), textColor: Sleeve.ink, onPressed: onAction ?? () {}),
+    duration: Duration(seconds: error || action != null ? 6 : 3),
   ));
 }
 
