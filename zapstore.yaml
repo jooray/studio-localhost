@@ -6,9 +6,9 @@ summary: Make full songs from a style and lyrics, offline, on your phone.
 description: |
   Write a style and some lyrics, press record, and your phone makes the whole song. Everything runs on the device. You don't need an account, and after the model download you don't need the internet either.
 
-  The first model is YuE2-3B. It takes a style such as "fast punk rock, screaming male vocal" plus lyrics with [Verse] and [Chorus] tags and renders a full stereo song. You can extend a song from any section, reuse a prompt for a new take, and rename songs in the catalogue.
+  The first model is YuE2-3B. It takes a style such as "fast punk rock, screaming male vocal" plus lyrics with [Verse] and [Chorus] tags and renders a full stereo song. You can extend a song from any section, reuse a prompt for a new take, and rename songs in the catalogue. When you make a batch of variations, the ones you like get a heart in the list, and the takes you have not heard yet are marked NEW.
 
-  It can also cover a recording. Pick an audio file, and the app writes down its melody and chords, then sings a new song from that score in your style and with your words. A Style control sets how much your style pulls against the original tune. The original sound and voice are not kept.
+  It can also cover a recording. Pick an audio file, and the app writes down its melody and chords, then sings a new song from that score in your style and with your words. A Style control sets how much your style pulls against the original tune. The original sound and voice are not kept. Cover the same recording again and the score is remembered, so the app skips listening and goes straight to the song.
 
   On a phone it is slow: expect a few minutes for every 10 seconds of music. Jobs run in the background and pick up again if Android closes the app. The same app runs on macOS and Linux, where it is much faster.
 

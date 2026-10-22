@@ -82,6 +82,9 @@ class SidecarProcess extends ChangeNotifier {
         'PYTHONUNBUFFERED': '1',
         'MLX_ENABLE_TF32': '0',
         'PYTHONNOUSERSITE': '1',
+        // A GUI launch does not see Homebrew or ~/.local/bin; the engine and the tools it runs
+        // (ffmpeg for cover listening) need them.
+        'PATH': AppPaths.childPath,
       };
       _log('\$ $python -m studio_engine   (cwd $cwd)');
       final proc = await Process.start(python, ['-m', 'studio_engine'], workingDirectory: cwd, environment: env);

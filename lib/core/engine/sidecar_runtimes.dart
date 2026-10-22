@@ -34,6 +34,13 @@ abstract class SidecarRuntime {
       };
 
   String ownSidecarPython() => AppPaths.venvPython(AppPaths.instance.sidecarVenv);
+
+  /// The ffmpeg the engine's cover transcription shells out to, when the app found one. A
+  /// settings override wins; otherwise this is the same search the export uses.
+  Map<String, dynamic> get tools {
+    final ffmpeg = AppPaths.ffmpeg(settings.ffmpegPath);
+    return {'ffmpeg': ?ffmpeg};
+  }
 }
 
 /// mlx-Yue (vanch007/mlx-Yue) in its own uv venv; the sidecar runs inside that venv.
@@ -106,6 +113,7 @@ class MlxRuntime extends SidecarRuntime {
         'engine_dir': engineDir,
         'model_dir': modelDir(model, format),
         'vae_dir': vaeDir(model, format),
+        ...tools,
       };
 
   @override
@@ -170,6 +178,7 @@ class Yue2CppRuntime extends SidecarRuntime {
       'gguf_model': p.join(dir, variant.file('backbone')?.name ?? ''),
       'gguf_vae': p.join(dir, variant.file('vae')?.name ?? ''),
       if (device.isNotEmpty) 'device': device,
+      ...tools,
     };
   }
 

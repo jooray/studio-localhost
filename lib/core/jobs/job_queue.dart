@@ -236,7 +236,13 @@ class JobQueue extends ChangeNotifier {
     try {
       final next = queued.firstOrNull;
       if (next == null) return;
-      final s = await library.patch(next, {'status': SongStatus.running.name, 'started_at': DateTime.now().toIso8601String()});
+      // A take that starts now is new until it is heard or liked; this also covers jobs queued
+      // before the NEW mark existed.
+      final s = await library.patch(next, {
+        'status': SongStatus.running.name,
+        'started_at': DateTime.now().toIso8601String(),
+        if (!next.meta.containsKey('played')) 'played': false,
+      });
       live[s.id] = LiveJob(s.id);
       notifyListeners();
       try {

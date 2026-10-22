@@ -116,22 +116,33 @@ class TakeState extends ChangeNotifier {
     return r == null ? null : queue.live[r.id];
   }
 
+  /// Words of the engraved status line for a running entry, whether or not it is the studio's
+  /// current take: the phase it is in, its number, and the time left (or frames composed).
+  List<String> recordingStatus(Song s) {
+    final j = queue.live[s.id];
+    final word = _stageWord(j?.stage ?? '');
+    final n = Catalogue.format(number(s));
+    if (j == null) return [word, n];
+    if (j.stage == 'semantic' && j.done != null) {
+      final fr = studio.model?.limits.frameRate ?? 25;
+      final total = (j.total ?? 0) > 0 ? j.total! / fr : s.targetSeconds;
+      return [word, n, '${formatDuration(j.done! / fr)} / ${formatDuration(total)}'];
+    }
+    if (j.eta != null && j.stage.isNotEmpty) {
+      return [word, n, '${j.etaUpperBound ? '≤' : '≈'}${formatDuration(j.eta!.inSeconds)} left'.toUpperCase()];
+    }
+    return [word, n];
+  }
+
+  /// How far a running entry is, 0..1. Without a fraction for the stage, the ETA gives it.
+  double? progressFor(Song s) => _progress(queue.live[s.id]);
+
   /// Words of the engraved status line, joined with " · " by the UI.
   List<String> get status {
     final s = current;
     switch (mode) {
       case TakeMode.recording:
-        final j = live;
-        final word = _stageWord(j?.stage ?? '');
-        final n = Catalogue.format(number(s));
-        if (j == null) return [word, n];
-        if (j.stage == 'semantic' && j.done != null) {
-          final fr = studio.model?.limits.frameRate ?? 25;
-          final total = (j.total ?? 0) > 0 ? j.total! / fr : s!.targetSeconds;
-          return [word, n, '${formatDuration(j.done! / fr)} / ${formatDuration(total)}'];
-        }
-        if (j.eta != null && j.stage.isNotEmpty) return [word, n, '${j.etaUpperBound ? '≤' : '≈'}${formatDuration(j.eta!.inSeconds)} left'.toUpperCase()];
-        return [word, n];
+        return recordingStatus(s!);
       case TakeMode.playing:
         return [
           Catalogue.format(number(s)),
@@ -195,13 +206,7 @@ class TakeState extends ChangeNotifier {
   double? get arc {
     switch (mode) {
       case TakeMode.recording:
-        final j = live;
-        if (j == null) return 0;
-        if (j.eta != null) {
-          final el = j.elapsed.inMilliseconds / 1000, left = j.eta!.inMilliseconds / 1000;
-          if (el + left > 0) return (el / (el + left)).clamp(0.0, 1.0);
-        }
-        return j.fraction ?? 0;
+        return _progress(live);
       case TakeMode.playing:
         final d = _duration(playingSong);
         return d > 0 ? (player.position.inMilliseconds / 1000 / d).clamp(0.0, 1.0) : 0;
@@ -245,4 +250,15 @@ class TakeState extends ChangeNotifier {
     player.removeListener(_onPlayer);
     super.dispose();
   }
+}
+
+/// How far a live job is, 0..1: its stage fraction, or elapsed against the ETA where the stage
+/// reports units too coarsely to move (loading, listening windows).
+double _progress(LiveJob? j) {
+  if (j == null) return 0;
+  if (j.eta != null) {
+    final el = j.elapsed.inMilliseconds / 1000, left = j.eta!.inMilliseconds / 1000;
+    if (el + left > 0) return (el / (el + left)).clamp(0.0, 1.0);
+  }
+  return (j.fraction ?? 0).clamp(0.0, 1.0);
 }

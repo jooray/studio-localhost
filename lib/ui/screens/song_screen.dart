@@ -13,6 +13,7 @@ import '../../core/player.dart';
 import '../../state/generate_form.dart';
 import '../../state/library_view.dart';
 import '../../state/seeds.dart';
+import '../../state/take.dart';
 import '../frame.dart';
 import '../routes.dart';
 import '../theme.dart';
@@ -75,14 +76,25 @@ class _SongPlot extends StatelessWidget {
   Widget build(BuildContext context) {
     final env = context.watch<Envelopes>().of(song);
     final pl = context.watch<AudioPlayerModel>();
+    final t = context.watch<TakeState>();
+    final v = context.read<LibraryView>();
     final mine = song.audioPath != null && pl.path == song.audioPath;
+    final running = song.status == SongStatus.running;
     final d = pl.duration.inMilliseconds;
+    final preview = song.previewPath;
     return PolarPlot(
       envelope: env,
       seed: song.codeSeed,
-      arc: mine && d > 0 ? pl.position.inMilliseconds / d : null,
+      arc: running ? t.progressFor(song) : (mine && d > 0 ? pl.position.inMilliseconds / d : null),
       grow: env == null && song.active ? 0.05 : null,
-      live: song.status == SongStatus.running,
+      live: running,
+      // The hole in the centre is the play/pause button: the preview while the take is still
+      // mixing, the finished mix after it.
+      onCenterTap: preview != null
+          ? () => pl.toggle(preview, title: '${v.library.fileTitle(song)} (preview)')
+          : song.hasAudio
+              ? () => v.toggle(song)
+              : null,
       onSeek: song.hasAudio
           ? (f) async {
               if (!mine) await pl.play(song.audioPath!, title: context.read<LibraryView>().library.fileTitle(song));
@@ -90,7 +102,7 @@ class _SongPlot extends StatelessWidget {
               if (dd > Duration.zero) await pl.seek(dd * f);
             }
           : null,
-      semanticLabel: 'Plot, tap the ring to play from there',
+      semanticLabel: 'Plot, tap the ring to play from there, the centre to play or pause',
     );
   }
 }
@@ -133,7 +145,7 @@ class _DetailsState extends State<_Details> {
       ]),
       const SizedBox(height: 22),
       const Rule(),
-      _PlayLine(song),
+      if (song.active) _TakeLine(song) else _PlayLine(song),
       const Rule(),
       if (song.status == SongStatus.failed || song.status == SongStatus.interrupted || song.status == SongStatus.cancelled) ...[
         Padding(
@@ -198,6 +210,40 @@ String _capsTags(String s) => s.replaceAllMapped(RegExp(r'\[[^\]\n]*\]'), (m) =>
 
 String _date(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+
+/// A running or queued entry: the phase it is in, the time it has left, and a rule filling as it
+/// works. The play line has nothing to play until the audio exists, so this stands in for it.
+class _TakeLine extends StatelessWidget {
+  const _TakeLine(this.song);
+  final Song song;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.watch<TakeState>();
+    final v = context.read<LibraryView>();
+    final u = SleeveScale.of(context);
+    final running = song.status == SongStatus.running;
+    final parts = running ? t.recordingStatus(song) : ['QUEUED', Catalogue.format(v.library.number(song))];
+    final f = running ? t.progressFor(song) ?? 0 : 0.0;
+    final style = SleeveType.status(u).copyWith(fontSize: 20);
+    return SizedBox(
+      height: 72,
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text.rich(TextSpan(style: style, children: engravedSpans(parts, style)), maxLines: 1, overflow: TextOverflow.fade, softWrap: false),
+        const SizedBox(height: 14),
+        // The rule under the words fills as the job moves, its head a 2 px tick like the scrub line.
+        SizedBox(
+          height: 14,
+          child: Stack(alignment: Alignment.centerLeft, children: [
+            const Rule(color: Sleeve.ruleFaint),
+            FractionallySizedBox(widthFactor: f, child: const Rule(color: Sleeve.ink)),
+            if (running) Align(alignment: Alignment(f * 2 - 1, 0), child: Container(width: 2, height: 14, color: Sleeve.ink)),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
 
 /// Play/pause and a hairline scrub rule.
 class _PlayLine extends StatelessWidget {
@@ -265,12 +311,12 @@ class _Actions extends StatelessWidget {
   Widget build(BuildContext context) {
     final v = context.read<LibraryView>();
     final u = SleeveScale.of(context);
-    Widget act(Glyph g, String label, VoidCallback? onTap) => SizedBox(
+    Widget act(Glyph g, String label, VoidCallback? onTap, {String? semantic}) => SizedBox(
           height: 48,
           child: Cell(
             shrink: true,
             onTap: onTap,
-            semanticLabel: label,
+            semanticLabel: semantic ?? label,
             padding: EdgeInsets.symmetric(horizontal: 14 * u),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               GlyphIcon(g, size: 18, color: Sleeve.ink),
@@ -280,6 +326,10 @@ class _Actions extends StatelessWidget {
           ),
         );
     return Wrap(spacing: 8, runSpacing: 8, children: [
+      // The heart: an outline until the take is a keeper, then filled. The index shows the same mark.
+      if (!song.readOnly)
+        act(song.liked ? Glyph.heartFilled : Glyph.heart, song.liked ? 'Liked' : 'Like', () => v.like(song),
+            semantic: song.liked ? 'Unlike' : 'Like'),
       act(Glyph.rename, 'Rename', onRename),
       if (song.hasAudio) act(Platform.isAndroid ? Glyph.share : Glyph.share, Platform.isAndroid ? 'Share' : 'Export', () => _export(context, v, song)),
       if (v.canExtend(song)) act(Glyph.extend, 'Extend', () => openExtend(context, song)),

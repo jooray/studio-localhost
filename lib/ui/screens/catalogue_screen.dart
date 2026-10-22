@@ -150,7 +150,7 @@ class CatalogueRow extends StatelessWidget {
     final playing = song.audioPath != null && pl.path == song.audioPath && pl.playing;
     final running = song.status == SongStatus.running;
     final status = switch (song.status) {
-      SongStatus.done => formatDuration(song.seconds),
+      SongStatus.done => song.isNew ? 'NEW' : formatDuration(song.seconds),
       SongStatus.running => 'REC',
       SongStatus.queued => 'QUEUED',
       SongStatus.failed => 'FAILED',
@@ -163,7 +163,7 @@ class CatalogueRow extends StatelessWidget {
           active: running,
           onTap: () => openSong(context, song),
           onLongPress: () => songMenu(context, song),
-          semanticLabel: '${v.titleOf(song)}, ${Catalogue.format(n)}',
+          semanticLabel: '${v.titleOf(song)}, ${Catalogue.format(n)}${song.liked ? ', liked' : ''}${song.isNew ? ', new' : ''}',
           padding: EdgeInsets.only(left: 18 * u, right: 4 * u),
           child: Row(children: [
             SizedBox.square(
@@ -199,7 +199,8 @@ class CatalogueRow extends StatelessWidget {
             ),
             SizedBox(width: 10 * u),
             if (song.status == SongStatus.failed) ...[const HollowMark(), const SizedBox(width: 6)],
-            Text(status, style: SleeveType.etched(u, size: 12, color: song.status == SongStatus.failed ? Sleeve.inkMute : Sleeve.inkSoft)),
+            if (song.liked) ...[const GlyphIcon(Glyph.heartFilled, size: 13), const SizedBox(width: 8)],
+            Text(status, style: SleeveType.etched(u, size: 12, color: song.isNew ? Sleeve.ink : song.status == SongStatus.failed ? Sleeve.inkMute : Sleeve.inkSoft)),
             GlyphButton(
               playing ? Glyph.pause : Glyph.play,
               tooltip: playing ? 'Pause' : 'Play',

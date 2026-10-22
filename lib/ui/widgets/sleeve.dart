@@ -176,6 +176,22 @@ class _CellState extends State<Cell> {
   }
 }
 
+/// Words of an engraved status line: parts joined by " · ", every space at 42% of a mono cell so
+/// the line reads engraved rather than typed.
+List<InlineSpan> engravedSpans(List<String> parts, TextStyle style) {
+  final gap = TextSpan(text: ' ', style: style.copyWith(fontSize: style.fontSize! * 0.42));
+  final spans = <InlineSpan>[];
+  for (var i = 0; i < parts.length; i++) {
+    if (i > 0) spans.addAll([gap, const TextSpan(text: '·'), gap]);
+    final words = parts[i].split(' ');
+    for (var k = 0; k < words.length; k++) {
+      if (k > 0) spans.add(gap);
+      spans.add(TextSpan(text: words[k]));
+    }
+  }
+  return spans;
+}
+
 /// Engraved caps text (labels, etched lines).
 class Etched extends StatelessWidget {
   const Etched(this.text, {super.key, this.size = 13, this.color = Sleeve.inkSoft, this.weight = FontWeight.w400, this.maxLines = 1, this.align});
@@ -198,7 +214,7 @@ class Etched extends StatelessWidget {
   }
 }
 
-enum Glyph { rename, reuse, catalogue, menu, play, pause, close, back, plus, minus, check, dice, up, share, extend, rerender, delete, folder, copy }
+enum Glyph { rename, reuse, catalogue, menu, play, pause, close, back, plus, minus, check, dice, up, share, extend, rerender, delete, folder, copy, heart, heartFilled }
 
 /// Authored icons: one 1.25 px stroke, square caps, drawn on a 24 unit grid.
 class GlyphIcon extends StatelessWidget {
@@ -331,6 +347,19 @@ class _GlyphPainter extends CustomPainter {
           ..moveTo(5, 15)
           ..lineTo(5, 5)
           ..lineTo(15, 5), p);
+      case Glyph.heart:
+      case Glyph.heartFilled:
+        // Two equal lobes and a point, drawn on the grid's 5..20 span.
+        final heart = Path()
+          ..moveTo(12, 20.2)
+          ..cubicTo(9.6, 18.2, 4.3, 14.6, 4.3, 9.9)
+          ..cubicTo(4.3, 7.05, 6.5, 5.2, 8.8, 5.2)
+          ..cubicTo(10.4, 5.2, 11.4, 6.1, 12, 7.15)
+          ..cubicTo(12.6, 6.1, 13.6, 5.2, 15.2, 5.2)
+          ..cubicTo(17.5, 5.2, 19.7, 7.05, 19.7, 9.9)
+          ..cubicTo(19.7, 14.6, 14.4, 18.2, 12, 20.2)
+          ..close();
+        canvas.drawPath(heart, glyph == Glyph.heartFilled ? fill : p);
     }
   }
 

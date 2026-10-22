@@ -122,6 +122,10 @@ the audio, `tokens.csv` (the model's token stream for the whole timeline), `scor
 `work/` folder with engine checkpoints. Re-render, resume and extend read only this layout, so
 they behave the same on every platform.
 
+Below the library, `cache/covers/v1-<sha256>-<mode>.abc` keeps the score heard in a recording.
+It is keyed by the recording's bytes, so a later cover of the same file (another take, another
+session, a deleted earlier take) skips listening and goes straight to generation.
+
 Self-test (desktop): `STUDIO_SELFTEST=<report dir> STUDIO_SELFTEST_QUIT=1` runs a short
 generate at 8 steps and an extend through the real app path and writes `selftest.json`.
 

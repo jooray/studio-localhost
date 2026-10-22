@@ -269,11 +269,16 @@ def _job_cover(backend, msg, cancel):
         tmp = work / "cover.abc.tmp"
         tmp.write_text(shared.read_text(encoding="utf-8"), encoding="utf-8")
         tmp.replace(score)
+    cache = common.cover_score_cache(msg["source_audio"], mode, out)
     if not (score.is_file() and score.read_text(encoding="utf-8").strip()):
-        abc = backend.transcribe(msg["source_audio"], mode, work / "transcription", cancel)
+        abc = cache.read_text(encoding="utf-8") if cache.is_file() else ""
+        if not abc.strip():
+            abc = backend.transcribe(msg["source_audio"], mode, work / "transcription", cancel)
         tmp = work / "cover.abc.tmp"
         tmp.write_text(abc, encoding="utf-8")
         tmp.replace(score)
+    # Seed the shared cache from this take's score, including a resumed or shared one.
+    common.write_cover_score(cache, score.read_text(encoding="utf-8"))
     return _job_generate(backend, {**msg, "mode": mode, "instrumental": False,
                                    "abc": score.read_text(encoding="utf-8")}, cancel)
 

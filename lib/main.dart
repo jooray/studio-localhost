@@ -56,6 +56,11 @@ Future<void> main() async {
   if (demo.isNotEmpty) await Demo.live(demo, library, queue, envelopes);
   final take = TakeState(studio, library, queue, player, envelopes);
   final form = GenerateForm(studio, queue);
+  // A take stops being new once its final mix is heard. Previews and raw renders do not count.
+  player.onPlay = (path) {
+    final s = library.byAudio(path);
+    if (s != null && !s.played) unawaited(library.patch(s, {'played': true}));
+  };
   // A finished job's audio changed: drop any stale plot so it is recomputed.
   library.addListener(() {
     for (final s in library.songs) {

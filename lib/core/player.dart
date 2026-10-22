@@ -42,12 +42,16 @@ class AudioPlayerModel extends ChangeNotifier {
   bool playing = false;
   String? error;
 
+  /// Called when a file actually starts (a new open, not a resume): the app marks the song played.
+  void Function(String path)? onPlay;
+
   Future<void> play(String file, {String? title}) async {
     error = null;
     if (path != file) {
       path = file;
       this.title = title;
       await _player.open(file);
+      onPlay?.call(file);
     } else {
       await _player.play();
     }

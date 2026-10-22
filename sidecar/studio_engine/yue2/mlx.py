@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 
 from ..backend_base import Backend
-from ..common import Cancelled
+from ..common import Cancelled, use_system_ffmpeg
 from .prompt import FRAME_RATE, SAMPLE_RATE, SEMANTIC_MAX_TOKENS, continuation_budget, shape_request
 
 _STAGES = {
@@ -264,6 +264,7 @@ class MLXBackend(Backend):
         caps = self.capabilities()
         if not caps["cover"]:
             raise RuntimeError(caps["cover_reason"])
+        use_system_ffmpeg(self.config.get("ffmpeg"))
         import gc
         import shutil
 

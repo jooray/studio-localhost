@@ -93,6 +93,8 @@ class GenerationService : Service() {
         SongStore.update(dir) {
             it.put("status", "running"); it.put("error", JSONObject.NULL)
             it.put("started_at", OffsetDateTime.now().toString())
+            // A take made now is new until it is heard or liked (older songs carry no flag).
+            if (!it.has("played")) it.put("played", false)
         }
         Events.send(mapOf("type" to "job", "id" to id, "status" to "running"))
 
@@ -147,6 +149,7 @@ class GenerationService : Service() {
                         job.work.absolutePath, job.transcriber!!.absolutePath, job.coverSource!!.absolutePath,
                         job.coverMelodyOnly, cores.size, cores, listener,
                     )
+                    if (result == Yue2Native.RESULT_OK) job.rememberCoverScore()
                 }
                 if (!job.needsTranscription) result = Yue2Native.generate(
                     job.work.absolutePath, job.backbone.absolutePath, job.vae.absolutePath, job.prepare(),

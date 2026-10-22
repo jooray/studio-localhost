@@ -22,6 +22,7 @@ SongStatus parseStatus(String? s) =>
 ///   "params": {"style", "lyrics", "instrumental", "mode", "seed", "steps", "precision",
 ///              "max_seconds", "abc"},
 ///   "parent", "source_dir",
+///   "liked": true, "played": false (a fresh take; absence means played),
 ///   "extend": {"section_start", "section_end", "add_seconds", "crossfade"},
 ///   "cover": {"source_audio" (relative to the folder), "source_name", "transcriber"},
 ///   "audio": "audio.flac|audio.mp3", "render", "audio_seconds", "token_frames",
@@ -56,6 +57,16 @@ class Song {
   String? get error => meta['error'] as String?;
   bool get active => status == SongStatus.queued || status == SongStatus.running;
   bool get resumable => !readOnly && (status == SongStatus.failed || status == SongStatus.cancelled || status == SongStatus.interrupted);
+
+  /// Marked good by the user (the heart). Absence is false.
+  bool get liked => meta['liked'] == true;
+
+  /// A finished take is new until it is heard or liked. Absence counts as played, so a library
+  /// made before hearts existed does not turn into a wall of NEW.
+  bool get played => meta['played'] != false;
+
+  /// A newly generated take nobody has heard yet: the index says NEW instead of a length.
+  bool get isNew => status == SongStatus.done && !played && !liked;
 
   Map<String, dynamic> _map(String k) => Map<String, dynamic>.from(meta[k] as Map? ?? const {});
   Map<String, dynamic> get params => _map('params');

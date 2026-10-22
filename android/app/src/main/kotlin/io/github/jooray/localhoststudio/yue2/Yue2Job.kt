@@ -3,6 +3,7 @@ package io.github.jooray.localhoststudio.yue2
 import android.media.MediaMetadataRetriever
 import org.json.JSONObject
 import java.io.File
+import java.security.MessageDigest
 import kotlin.math.roundToInt
 
 /**
@@ -38,10 +39,52 @@ class Yue2Job(val dir: File, private val song: JSONObject) {
             tmp.writeText(shared)
             tmp.renameTo(coverScore)
         }
+        // An earlier cover of the same recording already heard it: reuse that score.
+        if (kind == "cover" && coverScore.readTextOrNull().isNullOrBlank()) {
+            val cached = cachedCoverScore()?.readTextOrNull()
+            if (!cached.isNullOrBlank()) {
+                val tmp = File(work, "cover.abc.tmp")
+                tmp.writeText(cached)
+                tmp.renameTo(coverScore)
+            }
+        }
     }
 
     /** The cover still has to listen to its recording (no transcribed score yet). */
     val needsTranscription: Boolean get() = kind == "cover" && coverScore.readTextOrNull().isNullOrBlank()
+
+    /** Where this recording's score is remembered: content keyed, shared across takes and sessions. */
+    private fun coverScoreCache(): File? {
+        val source = coverSource?.takeIf { it.isFile } ?: return null
+        val digest = MessageDigest.getInstance("SHA-256")
+        source.inputStream().use { input ->
+            val buffer = ByteArray(1 shl 20)
+            while (true) {
+                val n = input.read(buffer)
+                if (n <= 0) break
+                digest.update(buffer, 0, n)
+            }
+        }
+        val key = digest.digest().joinToString("") { "%02x".format(it) }
+        val mode = if (coverMelodyOnly) "melody" else "full"
+        val data = dir.parentFile?.parentFile ?: return null
+        return File(data, "cache/covers/v1-$key-$mode.abc")
+    }
+
+    private fun cachedCoverScore(): File? = coverScoreCache()?.takeIf { it.isFile }
+
+    /** Keep this take's score for the next cover of the same recording (best effort). */
+    fun rememberCoverScore() {
+        val cache = coverScoreCache() ?: return
+        val parent = cache.parentFile ?: return
+        val text = coverScore.readTextOrNull()?.takeIf { it.isNotBlank() } ?: return
+        runCatching {
+            parent.mkdirs()
+            val tmp = File(parent, cache.name + ".tmp")
+            tmp.writeText(text)
+            tmp.renameTo(cache)
+        }
+    }
 
     var durationS = 0.0
     var sectionStartFrames = 0

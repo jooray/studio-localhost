@@ -150,7 +150,7 @@ class _IndexEntry extends StatelessWidget {
       frame: running || selected,
       onTap: () => openSong(context, song),
       onLongPress: () => songMenu(context, song),
-      semanticLabel: '$title, ${Catalogue.format(number)}',
+      semanticLabel: '$title, ${Catalogue.format(number)}${song.liked ? ', liked' : ''}${song.isNew ? ', new' : ''}',
       minHeight: 0,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -169,13 +169,15 @@ class _IndexEntry extends StatelessWidget {
           SizedBox(width: 48, child: CodeStripView(song.codeSeed, height: 5)),
           const Spacer(),
           if (failed) ...[const HollowMark(), const SizedBox(width: 6)],
+          // A filled heart for a keeper; NEW for a take nobody has heard yet.
+          if (song.liked) ...[const GlyphIcon(Glyph.heartFilled, size: 13), const SizedBox(width: 6)],
           Text(switch (song.status) {
-            SongStatus.done => formatDuration(song.seconds),
+            SongStatus.done => song.isNew ? 'NEW' : formatDuration(song.seconds),
             SongStatus.running => 'REC',
             SongStatus.queued => 'QUEUED',
             SongStatus.failed => 'FAILED',
             _ => 'STOPPED',
-          }, style: SleeveType.etched(1, size: 11, color: running ? Sleeve.red : Sleeve.inkMute)),
+          }, style: SleeveType.etched(1, size: 11, color: running ? Sleeve.red : song.isNew ? Sleeve.ink : Sleeve.inkMute)),
         ]),
       ]),
     );

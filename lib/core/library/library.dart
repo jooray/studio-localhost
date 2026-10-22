@@ -51,6 +51,14 @@ class Library extends ChangeNotifier {
     return null;
   }
 
+  /// The entry whose final mix is at [path]: previews and raw renders do not count.
+  Song? byAudio(String path) {
+    for (final s in songs) {
+      if (s.audioPath == path) return s;
+    }
+    return null;
+  }
+
   /// Songs in catalogue order, newest number first.
   List<Song> get byCatalogue {
     final l = songs.toList();
@@ -148,6 +156,8 @@ class Library extends ChangeNotifier {
       'status': SongStatus.queued.name,
       'catalogue': number,
       'app': {'name': appName, 'version': appVersion},
+      // A take is new until it is heard or liked (see Song.isNew).
+      'played': false,
       ...fields,
     };
     await _write(dir, meta);

@@ -11,6 +11,7 @@ Song folder (shared with the Android engine and the app; the app owns song.json)
 from __future__ import annotations
 
 import datetime as _dt
+import hashlib
 import json
 import os
 import shutil
@@ -191,15 +192,68 @@ def read_audio(path, sample_rate: int = 48000) -> np.ndarray:
 
 
 # ----------------------------------------------------------------------------------------
+# Cover scores: one transcription per recording, shared by every cover of it
+
+
+def source_digest(path) -> str:
+    """Content key for a recording, so copies of the same file share one score."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def cover_score_cache(source, mode: str, song_dir) -> Path:
+    """Where the score heard in this recording lives: beside the library, not inside a take.
+
+    Keyed by the file's bytes and the transcription mode (full keeps chords, melody does not), so
+    a new cover from the same recording skips listening even in a later session or another take
+    whose folder has been deleted."""
+    song_dir = Path(song_dir)
+    # v1: bump when the transcriber or its output format changes.
+    return song_dir.parent.parent / "cache" / "covers" / f"v1-{source_digest(source)}-{mode}.abc"
+
+
+def write_cover_score(cache: Path, abc: str) -> None:
+    """Best effort: a cache that cannot be written must never fail the song."""
+    try:
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        tmp = cache.with_name(cache.name + ".tmp")
+        tmp.write_text(abc, encoding="utf-8")
+        tmp.replace(cache)
+    except OSError:
+        pass
+
+
+# ----------------------------------------------------------------------------------------
 # Export
 
 
 def find_ffmpeg(hint: str | None = None) -> str | None:
+    home = Path.home()
     for candidate in (hint, "/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg",
+                      "/snap/bin/ffmpeg", home / ".local/bin/ffmpeg", home / "bin/ffmpeg",
                       shutil.which("ffmpeg")):
-        if candidate and os.path.isfile(candidate) and os.access(candidate, os.X_OK):
-            return candidate
+        if candidate and Path(candidate).is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
     return None
+
+
+def use_system_ffmpeg(hint: str | None = None) -> str:
+    """Find ffmpeg and put its folder on PATH for the rest of this process.
+
+    lyra's transcriber (cover listening) shells out to a bare `ffmpeg`, and a GUI-launched app
+    misses Homebrew on macOS and ~/.local/bin or snap on Linux. Returns the binary it found."""
+    ffmpeg = find_ffmpeg(hint)
+    if ffmpeg is None:
+        raise RuntimeError("Covers need ffmpeg, and it is not on PATH: install it "
+                           "(brew install ffmpeg on macOS, apt or snap on Linux) or set its path in Settings")
+    folder = str(Path(ffmpeg).parent)
+    parts = [p for p in os.environ.get("PATH", "").split(os.pathsep) if p]
+    if folder not in parts:
+        os.environ["PATH"] = os.pathsep.join([folder, *parts])
+    return ffmpeg
 
 
 def export_audio(source, destination, fmt: str, ffmpeg_hint: str | None = None, mp3_bitrate: int = 256):

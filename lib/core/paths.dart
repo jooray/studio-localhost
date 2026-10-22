@@ -53,18 +53,30 @@ class AppPaths {
   static String venvPython(String venv) =>
       Platform.isWindows ? p.join(venv, 'Scripts', 'python.exe') : p.join(venv, 'bin', 'python');
 
+  /// Where system tools live: the inherited PATH first (a terminal launch keeps it), then the
+  /// folders a Finder or Dock launch leaves out. On macOS and Linux the GUI PATH is minimal, so
+  /// Homebrew, /usr/local and ~/.local/bin have to be named explicitly.
+  static List<String> get toolDirs => [
+        ...(Platform.environment['PATH'] ?? '').split(':'),
+        '/opt/homebrew/bin',
+        '/usr/local/bin',
+        '/usr/bin',
+        '/bin',
+        '/snap/bin',
+        p.join(home, '.local', 'bin'),
+        p.join(home, '.cargo', 'bin'),
+        p.join(home, 'bin'),
+      ];
+
+  /// PATH for the sidecar and whatever it shells out to (lyra calls a bare `ffmpeg`).
+  static String get childPath {
+    final seen = <String>{};
+    return toolDirs.where((d) => d.isNotEmpty && seen.add(d)).join(':');
+  }
+
   /// Locate an executable on PATH plus the usual non-PATH spots of GUI apps.
   static String? which(String name, {List<String> extra = const []}) {
-    final dirs = <String>[
-      ...extra,
-      ...(Platform.environment['PATH'] ?? '').split(':'),
-      '/opt/homebrew/bin',
-      '/usr/local/bin',
-      '/usr/bin',
-      p.join(home, '.local', 'bin'),
-      p.join(home, '.cargo', 'bin'),
-    ];
-    for (final d in dirs) {
+    for (final d in [...extra, ...toolDirs]) {
       if (d.isEmpty) continue;
       final f = File(p.join(d, name));
       if (f.existsSync()) return f.path;

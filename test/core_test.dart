@@ -75,6 +75,32 @@ void main() {
     dir.deleteSync(recursive: true);
   });
 
+  test('a take is new until it is heard or liked; a missing flag means played', () {
+    final dir = Directory.systemTemp.createTempSync('song-new');
+    Song write(String status, {Object? played, Object? liked}) {
+      File('${dir.path}/song.json').writeAsStringSync(jsonEncode({
+        'format': Song.format,
+        'version': Song.formatVersion,
+        'id': 'n',
+        'title': 'T',
+        'status': status,
+        'kind': 'generate',
+        'played': ?played,
+        'liked': ?liked,
+      }));
+      return Song.load(dir.path)!;
+    }
+
+    expect(write('done').isNew, isFalse); // libraries made before hearts stay calm
+    expect(write('done', played: false).isNew, isTrue);
+    expect(write('done', played: true).isNew, isFalse);
+    expect(write('running', played: false).isNew, isFalse, reason: 'only a finished take is new');
+    expect(write('done', played: false, liked: true).isNew, isFalse, reason: 'liking retires NEW');
+    expect(write('done', liked: true).liked, isTrue);
+    expect(write('done').liked, isFalse);
+    dir.deleteSync(recursive: true);
+  });
+
   test('derived titles: first sung line, else style words', () {
     expect(deriveTitle(lyrics: '[Verse]\nNeon fades along the lane\n', style: 'jazz'), 'Neon fades along the lane');
     expect(deriveTitle(lyrics: '[Intro]\n. . .\n', style: 'cinematic dark jazz, trombone'), 'Cinematic dark jazz');

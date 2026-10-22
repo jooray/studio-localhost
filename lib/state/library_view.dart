@@ -86,6 +86,10 @@ class LibraryView extends ChangeNotifier {
   String titleOf(Song s) => library.titleOf(s);
   Future<void> resume(Song s) => queue.resume(s);
   Future<void> cancel(Song s) => queue.cancel(s);
+
+  /// The heart: flip it. Liking also retires NEW for good, so unliking never brings it back.
+  Future<void> like(Song s) => library.patch(s, {'liked': !s.liked, if (!s.played) 'played': true});
+
   void toggle(Song s) {
     final a = s.audioPath;
     if (a != null) player.toggle(a, title: library.fileTitle(s));

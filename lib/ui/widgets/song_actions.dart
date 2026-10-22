@@ -5,6 +5,7 @@ import '../../core/library/catalogue.dart';
 import '../../core/library/library.dart';
 import '../../core/library/song.dart';
 import '../../state/generate_form.dart';
+import '../../state/library_view.dart';
 import '../../state/take.dart';
 import '../routes.dart';
 import '../theme.dart';
@@ -87,6 +88,11 @@ Future<void> songMenu(BuildContext context, Song song) => showDialog<void>(
                 Navigator.pop(ctx);
                 reuseSong(context, song);
               }),
+              if (!song.readOnly)
+                item(song.liked ? Glyph.heartFilled : Glyph.heart, song.liked ? 'Unlike' : 'Like', () {
+                  Navigator.pop(ctx);
+                  context.read<LibraryView>().like(song);
+                }),
             ]),
           ),
         );

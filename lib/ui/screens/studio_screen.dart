@@ -419,20 +419,12 @@ class StatusLine extends StatelessWidget {
     // number and times always stay readable.
     final lead = t.lead ?? (parts.length >= 3 ? parts.first : null);
     final rest = t.lead == null && lead != null ? parts.sublist(1) : parts;
-    final spans = <InlineSpan>[];
+    final spans = engravedSpans(rest, style);
     // Engraved spacing: every space sits tighter than a full mono cell.
     final gap = TextSpan(
       text: ' ',
       style: style.copyWith(fontSize: style.fontSize! * 0.42),
     );
-    for (var i = 0; i < rest.length; i++) {
-      if (i > 0) spans.addAll([gap, const TextSpan(text: '·'), gap]);
-      final words = rest[i].split(' ');
-      for (var k = 0; k < words.length; k++) {
-        if (k > 0) spans.add(gap);
-        spans.add(TextSpan(text: words[k]));
-      }
-    }
     final Widget text;
     if (lead == null) {
       text = Text.rich(TextSpan(style: style, children: spans), maxLines: 1, overflow: TextOverflow.fade, softWrap: false);
