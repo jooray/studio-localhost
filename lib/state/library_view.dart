@@ -10,7 +10,17 @@ import '../core/studio.dart';
 
 /// Library screen state and song actions.
 class LibraryView extends ChangeNotifier {
-  LibraryView(this.studio, this.library, this.queue, this.player) : exporter = Exporter(studio);
+  LibraryView(this.studio, this.library, this.queue, this.player) : exporter = Exporter(studio) {
+    // The view is the library's face: a change in it (a heart, a rename, a finished take) has
+    // to redraw the pages that show it.
+    library.addListener(notifyListeners);
+  }
+
+  @override
+  void dispose() {
+    library.removeListener(notifyListeners);
+    super.dispose();
+  }
 
   final Studio studio;
   final Library library;
