@@ -136,3 +136,11 @@ generate at 8 steps and an extend through the real app path and writes `selftest
 - [mlx-Yue](https://github.com/vanch007/mlx-Yue) and the MLX conversions: vanch007
 - [ggml](https://github.com/ggml-org/ggml), [MLX](https://github.com/ml-explore/mlx),
   [media_kit](https://github.com/media-kit/media-kit), [Flutter](https://flutter.dev)
+
+## Follow on Nostr
+
+Localhost Recording Studio is on Nostr as studio-localhost@cypherpunk.today:
+
+`npub10ykef0updslee7dy0hz9rcy6ly3ptt25hcuhe4cank7lk276k5fsrfqdhf`
+
+[Open in a Nostr app](nostr:npub10ykef0updslee7dy0hz9rcy6ly3ptt25hcuhe4cank7lk276k5fsrfqdhf) · [njump](https://njump.me/npub10ykef0updslee7dy0hz9rcy6ly3ptt25hcuhe4cank7lk276k5fsrfqdhf) · [Primal](https://primal.net/p/npub10ykef0updslee7dy0hz9rcy6ly3ptt25hcuhe4cank7lk276k5fsrfqdhf) · [YakiHonne](https://yakihonne.com/users/npub10ykef0updslee7dy0hz9rcy6ly3ptt25hcuhe4cank7lk276k5fsrfqdhf)
