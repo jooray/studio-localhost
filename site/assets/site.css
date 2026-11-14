@@ -279,7 +279,6 @@ section[id] { scroll-margin-top: 52px; }
   border-radius: 0; font-family: var(--mono); font-size: 12px; font-weight: 500;
   letter-spacing: .2em; text-transform: uppercase; min-height: 44px;
 }
-.notes .nl__btn--primary { background: var(--ink); color: var(--ground); border: 1px solid var(--ink); }
 .notes :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 .notes .nl__media, .notes .nl__quote { border: 1px solid var(--rule); }
 .notes-fallback { margin: 0; padding: 20px; }
