@@ -2,7 +2,7 @@
 
 A single static page. Plain HTML, CSS and JavaScript: no build step, no CDN, no tracking.
 All URLs are relative, so it works at a domain root or under a GitHub Pages sub-path
-such as `https://jooray.github.io/studio-localhost/`.
+such as `https://cypherpunk.today/studio-localhost/`.
 
 ```
 site/

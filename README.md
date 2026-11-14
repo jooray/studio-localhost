@@ -11,7 +11,7 @@ What you can do: generate one or several variants, queue work and walk away, pla
 re-render with another seed or step count, extend a song from any section (chained extends),
 reuse a song's prompt for a new take, and rename songs.
 
-Website, with a short ad and a song the app made: **https://jooray.github.io/studio-localhost/**
+Website, with a short ad and a song the app made: **https://cypherpunk.today/studio-localhost/**
 
 ## Screenshots
 
