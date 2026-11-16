@@ -39,7 +39,12 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
     final songs = v.songs;
     return SleevePage(
       title: 'Catalogue · ${songs.length}',
-      actions: [GlyphButton(Glyph.rerender, tooltip: 'Rescan', size: 20, color: Sleeve.inkSoft, onTap: v.library.refresh)],
+      actions: [
+        GlyphButton(Glyph.rerender, tooltip: 'Rescan', size: 20, color: Sleeve.inkSoft, onTap: v.library.refresh),
+        // Settings, the same menu glyph the wide index column carries. On a phone this page is the only
+        // way in besides the record sheet's footer.
+        GlyphButton(Glyph.menu, tooltip: 'Settings', size: 22, color: Sleeve.inkSoft, onTap: () => openSettings(context)),
+      ],
       child: Builder(builder: (context) {
         final u = SleeveScale.of(context);
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
