@@ -34,7 +34,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        // arm64-v8a only: the engine is tuned for Armv8.6+ phone cores.
+        // arm64-v8a only; ggml picks its CPU kernels (armv8.0 .. armv9.2) at run time.
         ndk {
             abiFilters.clear()
             abiFilters += "arm64-v8a"
@@ -42,7 +42,7 @@ android {
         externalNativeBuild {
             cmake {
                 abiFilters += "arm64-v8a"
-                arguments += listOf("-DANDROID_STL=c++_static", "-DCMAKE_BUILD_TYPE=Release", "-DYUE2_VULKAN=OFF")
+                arguments += listOf("-DANDROID_STL=c++_shared", "-DCMAKE_BUILD_TYPE=Release", "-DYUE2_VULKAN=OFF")
             }
         }
     }
@@ -78,7 +78,14 @@ android {
     }
 
     packaging {
-        jniLibs { useLegacyPackaging = false }
+        // Extracted to nativeLibraryDir: ggml lists that directory to find and score
+        // its libggml-cpu-android_*.so variants.
+        // The armv9 (SVE/SME) variants are left out: untested with this engine, and a
+        // Tensor G5 then keeps the armv8.6 dotprod+i8mm+fp16 kernels that 0.5.0 used.
+        jniLibs {
+            useLegacyPackaging = true
+            excludes += "**/libggml-cpu-android_armv9*"
+        }
     }
 
     dependenciesInfo {

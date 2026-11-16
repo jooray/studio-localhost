@@ -16,6 +16,8 @@
 // (the AR writes on from where it stopped), a score skips the planning stage.
 
 #include <android/log.h>
+#include <dlfcn.h>
+#include <link.h>
 #include <jni.h>
 #include <pthread.h>
 #include <sched.h>
@@ -97,6 +99,43 @@ enum Stage {
     STAGE_WRITE    = 5,
     STAGE_LISTEN   = 6,  // a cover's recording through the transcriber
 };
+
+// ggml's CPU kernels live in libggml-cpu-android_<level>.so beside this library,
+// one per Arm feature level; ggml scores them against the hwcaps and registers the
+// best one this CPU can run. Must happen before the engine's backend_load(), which
+// only searches the executable's directory (app_process) and the cwd.
+static std::string g_cpu_variant;
+
+static void studio_backend_load() {
+    static const bool loaded = [] {
+        Dl_info info{};
+        std::string dir;
+        if (dladdr(reinterpret_cast<void *>(&studio_backend_load), &info) && info.dli_fname) {
+            dir = info.dli_fname;
+            size_t slash = dir.rfind('/');
+            dir = slash == std::string::npos ? std::string() : dir.substr(0, slash);
+        }
+        ggml_log_set(yue2_ggml_log, nullptr);
+        ggml_backend_load_all_from_path(dir.empty() ? nullptr : dir.c_str());
+        ggml_backend_dev_t cpu = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
+        ggml_backend_reg_t reg = cpu ? ggml_backend_dev_backend_reg(cpu) : nullptr;
+        g_cpu_variant = cpu ? "" : "no CPU backend";
+        dl_iterate_phdr(
+            [](dl_phdr_info * i, size_t, void *) {
+                const char * base = i->dlpi_name ? strrchr(i->dlpi_name, '/') : nullptr;
+                base = base ? base + 1 : i->dlpi_name;
+                if (base && strncmp(base, "libggml-cpu-", 12) == 0) {
+                    g_cpu_variant = base;
+                }
+                return 0;
+            },
+            nullptr);
+        __android_log_print(ANDROID_LOG_INFO, "yue2", "ggml backends from %s: %s (%s)", dir.c_str(),
+                            g_cpu_variant.c_str(), reg ? ggml_backend_reg_name(reg) : "-");
+        return true;
+    }();
+    (void) loaded;
+}
 
 static std::atomic<bool> g_cancel{ false };
 static std::atomic<bool> g_running{ false };
@@ -358,6 +397,7 @@ extern "C" JNIEXPORT jint JNICALL Java_io_github_jooray_localhoststudio_yue2_Yue
     }
     g_cancel = false;
     start_stderr_capture();
+    studio_backend_load();
 
     auto jstr = [env](jstring s) {
         const char * c = env->GetStringUTFChars(s, nullptr);
@@ -626,6 +666,7 @@ extern "C" JNIEXPORT jint JNICALL Java_io_github_jooray_localhoststudio_yue2_Yue
     }
     g_cancel = false;
     start_stderr_capture();
+    studio_backend_load();
     auto jstr = [env](jstring s) {
         const char * c = env->GetStringUTFChars(s, nullptr);
         std::string  r(c);
@@ -705,16 +746,8 @@ extern "C" JNIEXPORT jstring JNICALL Java_io_github_jooray_localhoststudio_yue2_
 
 extern "C" JNIEXPORT jstring JNICALL Java_io_github_jooray_localhoststudio_yue2_Yue2Native_systemInfo(JNIEnv * env,
                                                                                                     jclass) {
-    std::string info = "ggml CPU backend";
-#if defined(__ARM_FEATURE_DOTPROD)
-    info += " +dotprod";
-#endif
-#if defined(__ARM_FEATURE_MATMUL_INT8)
-    info += " +i8mm";
-#endif
-#if defined(__ARM_FEATURE_FP16_VECTOR_ARITHMETIC)
-    info += " +fp16";
-#endif
+    studio_backend_load();
+    std::string info = "ggml CPU backend " + g_cpu_variant;
 #if defined(YUE2_WITH_VULKAN)
     info += ", Vulkan compiled in";
 #endif
