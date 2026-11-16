@@ -12,6 +12,7 @@ import '../../core/settings.dart';
 import '../../core/studio.dart';
 import '../../core/update_check.dart';
 import '../frame.dart';
+import '../support_ask.dart';
 import '../routes.dart';
 import '../theme.dart';
 import '../widgets/sleeve.dart';
@@ -170,7 +171,11 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 14),
             Align(
               alignment: Alignment.centerLeft,
-              child: cell('Licences', () => showLicensePage(context: context, applicationName: appName, applicationVersion: appVersion)),
+              child: Wrap(spacing: 8, runSpacing: 8, children: [
+                cell('Licences', () => showLicensePage(context: context, applicationName: appName, applicationVersion: appVersion)),
+                // Permanent, and unaffected by "Don't ask again": opens the checkout in the browser.
+                cell('Support the project', () => context.read<StudioSupport>().openFromMenu()),
+              ]),
             ),
           ]),
         ]);

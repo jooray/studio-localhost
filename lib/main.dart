@@ -27,6 +27,7 @@ import 'state/take.dart';
 import 'ui/app.dart';
 import 'ui/screens/studio_screen.dart' show studioScrollToEnd;
 import 'ui/snapshot.dart';
+import 'ui/support_ask.dart';
 import 'ui/ui_test.dart';
 
 Future<void> main() async {
@@ -57,9 +58,14 @@ Future<void> main() async {
   final take = TakeState(studio, library, queue, player, envelopes);
   final form = GenerateForm(studio, queue);
   // A take stops being new once its final mix is heard. Previews and raw renders do not count.
+  // That first listen is also the support ask's action and moment of value (ui/support_ask.dart).
+  final support = StudioSupport()..launch();
   player.onPlay = (path) {
     final s = library.byAudio(path);
-    if (s != null && !s.played) unawaited(library.patch(s, {'played': true}));
+    if (s != null && !s.played) {
+      unawaited(library.patch(s, {'played': true}));
+      unawaited(support.takeHeard(s.id));
+    }
   };
   // A finished job's audio changed: drop any stale plot so it is recomputed.
   library.addListener(() {
@@ -80,7 +86,8 @@ Future<void> main() async {
       ChangeNotifierProvider.value(value: take),
       ChangeNotifierProvider.value(value: form),
       ChangeNotifierProvider(create: (_) => ExtendForm(studio, queue, library)),
-      ChangeNotifierProvider(create: (_) => LibraryView(studio, library, queue, player)),
+      Provider.value(value: support),
+      ChangeNotifierProvider(create: (_) => LibraryView(studio, library, queue, player, onFirstHeard: support.takeHeard)),
     ],
     child: const StudioApp(),
   ));

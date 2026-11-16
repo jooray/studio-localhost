@@ -10,7 +10,7 @@ import '../core/studio.dart';
 
 /// Library screen state and song actions.
 class LibraryView extends ChangeNotifier {
-  LibraryView(this.studio, this.library, this.queue, this.player) : exporter = Exporter(studio) {
+  LibraryView(this.studio, this.library, this.queue, this.player, {this.onFirstHeard}) : exporter = Exporter(studio) {
     // The view is the library's face: a change in it (a heart, a rename, a finished take) has
     // to redraw the pages that show it.
     library.addListener(notifyListeners);
@@ -98,7 +98,14 @@ class LibraryView extends ChangeNotifier {
   Future<void> cancel(Song s) => queue.cancel(s);
 
   /// The heart: flip it. Liking also retires NEW for good, so unliking never brings it back.
-  Future<void> like(Song s) => library.patch(s, {'liked': !s.liked, if (!s.played) 'played': true});
+  Future<void> like(Song s) async {
+    final first = !s.played && s.status == SongStatus.done;
+    await library.patch(s, {'liked': !s.liked, if (!s.played) 'played': true});
+    if (first) await onFirstHeard?.call(s.id);
+  }
+
+  /// A finished take was heard (or liked) for the first time; the support ask counts it.
+  final Future<void> Function(String songId)? onFirstHeard;
 
   void toggle(Song s) {
     final a = s.audioPath;

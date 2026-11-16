@@ -2,7 +2,7 @@ name: studio_localhost
 description: "Localhost Recording Studio: local music generation on your own hardware."
 publish_to: 'none'
 # One version for every platform (Android versionName/versionCode, macOS, Linux).
-version: 0.5.0+14
+version: 0.5.1+15
 
 environment:
   sdk: ^3.13.4
@@ -18,6 +18,8 @@ dependencies:
   path: ^1.9.1
   media_kit_libs_macos_audio: ^1.1.4
   media_kit_libs_linux: ^1.2.1
+  shared_preferences: ^2.5.6
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

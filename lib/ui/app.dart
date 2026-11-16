@@ -12,6 +12,7 @@ import 'routes.dart';
 import 'screens/catalogue_screen.dart';
 import 'screens/setup_screen.dart';
 import 'snapshot.dart';
+import 'support_ask.dart';
 import 'theme.dart';
 import 'widgets/sleeve.dart';
 
@@ -30,7 +31,8 @@ class _StudioAppState extends State<StudioApp> {
   void initState() {
     super.initState();
     final studio = context.read<Studio>();
-    _lifecycle = AppLifecycleListener(onExitRequested: () async {
+    final support = context.read<StudioSupport>();
+    _lifecycle = AppLifecycleListener(onResume: support.launch, onExitRequested: () async {
       await studio.engine?.shutdown();
       return AppExitResponse.exit;
     });

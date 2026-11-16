@@ -22,6 +22,7 @@ import '../widgets/sleeve.dart';
 import '../widgets/song_actions.dart';
 import '../widgets/title_editor.dart';
 import 'record_sheet.dart';
+import '../support_ask.dart';
 import 'studio_screen.dart' show shortError;
 
 /// One catalogue entry: the plot large, its number and code, playback, actions and the
@@ -168,6 +169,9 @@ class _DetailsState extends State<_Details> {
       ],
       const SizedBox(height: 14),
       _Actions(song, onRename: () => _title.currentState?.edit()),
+      // The support ask, if it is due: it appears here only right after this take is heard for the
+      // first time (see ui/support_ask.dart), and takes no space otherwise.
+      if (!song.readOnly) SupportSlot(support: context.read<StudioSupport>(), songId: song.id, u: u),
       const SizedBox(height: 26),
       Etched('Transmission data', size: 12, color: Sleeve.inkMute),
       const SizedBox(height: 6),

@@ -3,6 +3,10 @@
 Make full songs from a style description and lyrics on your own hardware: a phone, a foldable,
 a Mac or a Linux PC. No server, no account, no upload; after the model download it works offline.
 
+The app is free. A few times at most (never during a recording, and never after "Don't ask
+again") it asks whether you want to support it, with an e-book as thanks; Settings > About keeps a
+"Support the project" link. Either one only opens a page in your browser: the app itself sends nothing.
+
 The app is model-agnostic. Models come from a registry (`assets/models/registry.json`) that
 declares each model's files, licence, features and limits. The first model is
 [YuE2-3B](https://huggingface.co/m-a-p/YuE2-3B) by M-A-P (48 kHz stereo songs with vocals).
@@ -32,7 +36,7 @@ The engine is chosen by hardware (you can override it in the model setup):
 |---|---|---|
 | Apple Silicon Mac | [mlx-Yue](https://github.com/vanch007/mlx-Yue) (MLX) in a Python sidecar | Measured on an M2 Max: a 25 s song in ~23 s at 8 steps (8-bit AR); extend +15 s in ~14 s |
 | Linux, Intel Mac | [yue2.cpp](https://github.com/ServeurpersoCom/yue2.cpp) (ggml: CUDA, Vulkan, Metal or CPU) via the same sidecar | built locally by the setup flow |
-| Android (arm64, Android 14+) | yue2.cpp in-process (JNI, CPU) in a foreground service | jobs run in the background and resume after being killed |
+| Android (arm64, Android 14+) | yue2.cpp in-process (JNI, CPU) in a foreground service; the CPU kernels (armv8.0 up to armv8.6 with i8mm) are picked at run time | jobs run in the background and resume after being killed |
 
 ## Models and licences
 
